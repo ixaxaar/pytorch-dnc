@@ -6,7 +6,7 @@ from torch.autograd import Variable as var
 import torch.nn.functional as F
 import numpy as np
 
-from util import *
+from .util import *
 
 
 class Memory(nn.Module):
