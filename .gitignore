@@ -16,3 +16,5 @@ __pycache__/
 *.lang
 *.log
 .cache/
+dist/
+dnc.egg-info/
