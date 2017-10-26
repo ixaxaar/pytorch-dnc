@@ -29,6 +29,7 @@ pip install dnc
 | gpu_id | -1 | ID of the GPU, -1 for CPU |
 | independent_linears | False | Whether to use independent linear units to derive interface vector |
 | share_memory | True | Whether to share memory between controller layers |
+| reset_experience | False | Whether to reset memory (This is a parameter for the forward pass) |
 
 
 Example usage:
@@ -51,7 +52,7 @@ rnn = DNC(
 (controller_hidden, memory, read_vectors) = (None, None, None)
 
 output, (controller_hidden, memory, read_vectors) = \
-  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors))
+  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
 ```
 
 ## Example copy task
