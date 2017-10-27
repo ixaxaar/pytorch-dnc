@@ -20,7 +20,7 @@ import torch.optim as optim
 
 from torch.nn.utils import clip_grad_norm
 
-from dnc import DNC
+from dnc.dnc import DNC
 
 parser = argparse.ArgumentParser(description='PyTorch Differentiable Neural Computer')
 parser.add_argument('-input_size', type=int, default= 6, help='dimension of input feature')
@@ -100,13 +100,6 @@ if __name__ == '__main__':
   mem_slot = args.mem_slot
   mem_size = args.mem_size
   read_heads = args.read_heads
-
-
-  # options, _ = getopt.getopt(sys.argv[1:], '', ['iterations='])
-
-  # for opt in options:
-  #   if opt[0] == '-iterations':
-  #     iterations = int(opt[1])
 
   rnn = DNC(
     input_size=args.input_size,
