@@ -24,7 +24,7 @@ from torch.nn.utils import clip_grad_norm
 from dnc.dnc import DNC
 
 parser = argparse.ArgumentParser(description='PyTorch Differentiable Neural Computer')
-parser.add_argument('-input_size', type=int, default= 6, help='dimension of input feature')
+parser.add_argument('-input_size', type=int, default=6, help='dimension of input feature')
 parser.add_argument('-rnn_type', type=str, default='lstm', help='type of recurrent cells to use for the controller')
 parser.add_argument('-nhid', type=int, default=64, help='number of hidden units of the inner nn')
 parser.add_argument('-dropout', type=float, default=0.3, help='controller dropout')
@@ -108,15 +108,15 @@ if __name__ == '__main__':
   read_heads = args.read_heads
 
   rnn = DNC(
-    input_size=args.input_size,
-    hidden_size=args.nhid,
-    rnn_type='lstm',
-    num_layers=args.nlayer,
-    nr_cells=mem_slot,
-    cell_size=mem_size,
-    read_heads=read_heads,
-    gpu_id=args.cuda,
-    debug=True
+      input_size=args.input_size,
+      hidden_size=args.nhid,
+      rnn_type='lstm',
+      num_layers=args.nlayer,
+      nr_cells=mem_slot,
+      cell_size=mem_size,
+      read_heads=read_heads,
+      gpu_id=args.cuda,
+      debug=True
   )
 
   if args.cuda != -1:
@@ -156,16 +156,17 @@ if __name__ == '__main__':
     last_save_losses.append(loss_value)
 
     if summarize:
-      llprint("\n\tAvg. Logistic Loss: %.4f\n" % (np.mean(last_save_losses)))
+      loss = np.mean(last_save_losses)
+      llprint("\n\tAvg. Logistic Loss: %.4f\n" % (loss))
       last_save_losses = []
 
       viz.heatmap(
-        v.data.cpu().numpy(),
-        opts=dict(
-          xtickstep=10,
-          ytickstep=2,
-          title='Timestep: ' + str(epoch)
-        )
+          v.data.cpu().numpy(),
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Timestep: ' + str(epoch) + ', loss: ' + str(loss)
+          )
       )
 
     if take_checkpoint:
