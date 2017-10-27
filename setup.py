@@ -54,7 +54,7 @@ setup(
 
     keywords='differentiable neural computer dnc memory network',
 
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'tasks']),
 
     install_requires=['torch', 'numpy'],
 
