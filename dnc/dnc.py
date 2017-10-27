@@ -171,7 +171,7 @@ class DNC(nn.Module):
       read_vectors[time] = read_vecs.view(-1, self.w * self.r)
 
       # get the final output for this time step
-      outs[time] = self.mem_out(T.cat([out, read_vectors[time]], 1))
+      outs[time] = self.dropout_layer(self.mem_out(T.cat([out, read_vectors[time]], 1)))
 
     return outs, read_vectors, (chx, mhx)
 
