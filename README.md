@@ -60,9 +60,29 @@ output, (controller_hidden, memory, read_vectors) = \
 The copy task, as descibed in the original paper, is included in the repo.
 
 From the project root:
-```
+```bash
 python ./tasks/copy_task.py -cuda 0
 ```
+
+The copy task can be used to debug memory using [Visdom](https://github.com/facebookresearch/visdom).
+
+Additional step required:
+
+```bash
+pip install visdom
+python -m visdom.server
+```
+
+Open http://localhost:8097/ on your browser, and execute the copy task:
+
+```bash
+python ./tasks/copy_task.py -cuda 0
+```
+
+The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_freq` iteration:
+
+![Visdom dashboard](https://user-images.githubusercontent.com/144122/32119691-a54ebd86-bb73-11e7-9ffa-4fa720d7a21a.png)
+
 
 ## General noteworthy stuff
 
