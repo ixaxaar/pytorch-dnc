@@ -165,7 +165,9 @@ if __name__ == '__main__':
           opts=dict(
               xtickstep=10,
               ytickstep=2,
-              title='Timestep: ' + str(epoch) + ', loss: ' + str(loss)
+              title='Timestep: ' + str(epoch) + ', loss: ' + str(loss),
+              xlabel='mem_slot * time',
+              ylabel='mem_size'
           )
       )
 
