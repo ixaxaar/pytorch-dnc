@@ -31,7 +31,8 @@ class DNC(nn.Module):
       nonlinearity='tanh',
       gpu_id=-1,
       independent_linears=False,
-      share_memory=True
+      share_memory=True,
+      debug=False
   ):
     super(DNC, self).__init__()
     # todo: separate weights and RNNs for the interface and output vectors
@@ -51,6 +52,7 @@ class DNC(nn.Module):
     self.gpu_id = gpu_id
     self.independent_linears = independent_linears
     self.share_memory = share_memory
+    self.debug = debug
 
     self.w = self.cell_size
     self.r = self.read_heads
@@ -196,6 +198,9 @@ class DNC(nn.Module):
     # batched forward pass per element / word / etc
     outputs = None
     chxs = []
+    if self.debug:
+      viz = [mem_hidden['memory'][0]] if self.share_memory else [mem_hidden[0]['memory'][0]]
+
     read_vectors = [last_read] * max_length
     # outs = [input[:, x, :] for x in range(max_length)]
     outs = [T.cat([input[:, x, :], last_read], 1) for x in range(max_length)]
@@ -213,6 +218,10 @@ class DNC(nn.Module):
           (chx, m)
       )
 
+      # debug memory
+      if self.debug:
+        viz.append(m['memory'][0])
+
       # store the memory back (per layer or shared)
       if self.share_memory:
         mem_hidden = m
@@ -227,6 +236,9 @@ class DNC(nn.Module):
         # the controller output + read vectors go into next layer
         outs = [T.cat([o, r], 1) for o, r in zip(outs, read_vectors)]
         # outs = [o for o in outs]
+
+    if self.debug:
+      viz = T.cat(viz, 0).transpose(0, 1)
 
     # final hidden values
     if self.rnn_type.lower() == 'lstm':
@@ -243,4 +255,7 @@ class DNC(nn.Module):
 
     # apply_dict(locals())
 
-    return outputs, (controller_hidden, mem_hidden, read_vectors[-1])
+    if self.debug:
+      return outputs, (controller_hidden, mem_hidden, read_vectors[-1]), viz
+    else:
+      return outputs, (controller_hidden, mem_hidden, read_vectors[-1])
