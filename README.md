@@ -20,7 +20,7 @@ pip install dnc
 | num_layers | 1 | Number of layers of recurrent units in the controller |
 | bias | True | Bias |
 | batch_first | True | Whether data is fed batch first |
-| dropout | 0 | Dropout between layers in the controller (Not yet implemented) |
+| dropout | 0 | Dropout between layers in the controller |
 | bidirectional | False | If the controller is bidirectional (Not yet implemented) |
 | nr_cells | 5 | Number of memory cells |
 | read_heads | 2 | Number of read heads |

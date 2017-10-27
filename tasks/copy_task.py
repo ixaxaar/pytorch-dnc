@@ -25,7 +25,8 @@ from dnc.dnc import DNC
 parser = argparse.ArgumentParser(description='PyTorch Differentiable Neural Computer')
 parser.add_argument('-input_size', type=int, default= 6, help='dimension of input feature')
 parser.add_argument('-rnn_type', type=str, default='lstm', help='type of recurrent cells to use for the controller')
-parser.add_argument('-nhid', type=int, default=64, help='humber of hidden units of the inner nn')
+parser.add_argument('-nhid', type=int, default=64, help='number of hidden units of the inner nn')
+parser.add_argument('-dropout', type=float, default=0.3, help='controller dropout')
 
 parser.add_argument('-nlayer', type=int, default=2, help='number of layers')
 parser.add_argument('-lr', type=float, default=1e-2, help='initial learning rate')
