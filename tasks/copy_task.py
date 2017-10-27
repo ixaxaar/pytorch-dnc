@@ -10,6 +10,7 @@ import os
 import math
 import time
 import argparse
+from visdom import Visdom
 
 sys.path.insert(0, os.path.join('..', '..'))
 
@@ -23,7 +24,7 @@ from torch.nn.utils import clip_grad_norm
 from dnc.dnc import DNC
 
 parser = argparse.ArgumentParser(description='PyTorch Differentiable Neural Computer')
-parser.add_argument('-input_size', type=int, default= 6, help='dimension of input feature')
+parser.add_argument('-input_size', type=int, default=6, help='dimension of input feature')
 parser.add_argument('-rnn_type', type=str, default='lstm', help='type of recurrent cells to use for the controller')
 parser.add_argument('-nhid', type=int, default=64, help='number of hidden units of the inner nn')
 parser.add_argument('-dropout', type=float, default=0.3, help='controller dropout')
@@ -34,7 +35,7 @@ parser.add_argument('-clip', type=float, default=0.5, help='gradient clipping')
 
 parser.add_argument('-batch_size', type=int, default=100, metavar='N', help='batch size')
 parser.add_argument('-mem_size', type=int, default=16, help='memory dimension')
-parser.add_argument('-mem_slot', type=int, default=15, help='number of memory slots')
+parser.add_argument('-mem_slot', type=int, default=10, help='number of memory slots')
 parser.add_argument('-read_heads', type=int, default=1, help='number of read heads')
 
 parser.add_argument('-sequence_max_length', type=int, default=4, metavar='N', help='sequence_max_length')
@@ -47,6 +48,9 @@ parser.add_argument('-check_freq', type=int, default=100, metavar='N', help='che
 
 args = parser.parse_args()
 print(args)
+
+viz = Visdom()
+# assert viz.check_connection()
 
 if args.cuda != -1:
   print('Using CUDA.')
@@ -104,14 +108,15 @@ if __name__ == '__main__':
   read_heads = args.read_heads
 
   rnn = DNC(
-    input_size=args.input_size,
-    hidden_size=args.nhid,
-    rnn_type='lstm',
-    num_layers=args.nlayer,
-    nr_cells=mem_slot,
-    cell_size=mem_size,
-    read_heads=read_heads,
-    gpu_id=args.cuda
+      input_size=args.input_size,
+      hidden_size=args.nhid,
+      rnn_type='lstm',
+      num_layers=args.nlayer,
+      nr_cells=mem_slot,
+      cell_size=mem_size,
+      read_heads=read_heads,
+      gpu_id=args.cuda,
+      debug=True
   )
 
   if args.cuda != -1:
@@ -131,7 +136,8 @@ if __name__ == '__main__':
     # input_data = input_data.transpose(0, 1).contiguous()
     target_output = target_output.transpose(0, 1).contiguous()
 
-    output, _ = rnn(input_data, None)
+    output, (chx, mhx, rv), v = rnn(input_data, None)
+
     output = output.transpose(0, 1)
 
     loss = criterion((output), target_output)
@@ -144,14 +150,26 @@ if __name__ == '__main__':
     optimizer.step()
     loss_value = loss.data[0]
 
-    summerize = (epoch % summarize_freq == 0)
+    summarize = (epoch % summarize_freq == 0)
     take_checkpoint = (epoch != 0) and (epoch % check_freq == 0)
 
     last_save_losses.append(loss_value)
 
-    if summerize:
-      llprint("\n\tAvg. Logistic Loss: %.4f\n" % (np.mean(last_save_losses)))
+    if summarize:
+      loss = np.mean(last_save_losses)
+      llprint("\n\tAvg. Logistic Loss: %.4f\n" % (loss))
       last_save_losses = []
+
+      viz.heatmap(
+          v.data.cpu().numpy(),
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Timestep: ' + str(epoch) + ', loss: ' + str(loss),
+              xlabel='mem_slot * time',
+              ylabel='mem_size'
+          )
+      )
 
     if take_checkpoint:
       llprint("\nSaving Checkpoint ... "),
