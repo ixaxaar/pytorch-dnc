@@ -18,3 +18,4 @@ __pycache__/
 .cache/
 dist/
 dnc.egg-info/
+tasks/checkpoints/

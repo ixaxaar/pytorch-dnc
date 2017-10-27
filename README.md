@@ -59,8 +59,9 @@ output, (controller_hidden, memory, read_vectors) = \
 
 The copy task, as descibed in the original paper, is included in the repo.
 
+From the project root:
 ```
-python ./copy_task.py -cuda 0
+python ./tasks/copy_task.py -cuda 0
 ```
 
 ## General noteworthy stuff
