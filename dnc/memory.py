@@ -83,11 +83,22 @@ class Memory(nn.Module):
   def allocate(self, usage, write_gate):
     # ensure values are not too small prior to cumprod.
     usage = δ + (1 - δ) * usage
+    batch_size = usage.size(0)
     # free list
     sorted_usage, φ = T.topk(usage, self.mem_size, dim=1, largest=False)
-    # TODO: these are actually shifted cumprods, tensorflow has exclusive=True
-    # fix once pytorch issue is fixed
-    sorted_allocation_weights = (1 - sorted_usage) * fake_cumprod(sorted_usage, self.gpu_id).squeeze()
+
+    # cumprod with exclusive=True, TODO: unstable territory, revisit this shit
+    # essential for correct scaling of allocation_weights to prevent memory pollution
+    # during write operations
+    # https://discuss.pytorch.org/t/cumprod-exclusive-true-equivalences/2614/8
+    v = var(T.ones(batch_size, 1))
+    if self.gpu_id != -1:
+      v = v.cuda(self.gpu_id)
+    cat_sorted_usage = T.cat((v, sorted_usage), 1)[:, :-1]
+    prod_sorted_usage = fake_cumprod(cat_sorted_usage, self.gpu_id)
+
+    sorted_allocation_weights = (1 - sorted_usage) * prod_sorted_usage.squeeze()
+
     # construct the reverse sorting index https://stackoverflow.com/questions/2483696/undo-or-reverse-argsort-python
     _, φ_rev = T.topk(φ, k=self.mem_size, dim=1, largest=False)
     allocation_weights = sorted_allocation_weights.gather(1, φ.long())
