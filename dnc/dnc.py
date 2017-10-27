@@ -69,20 +69,11 @@ class DNC(nn.Module):
     for layer in range(self.num_layers):
       # controllers for each layer
       if self.rnn_type.lower() == 'rnn':
-        if layer == 0:
           self.rnns.append(nn.RNNCell(self.layer0_input_size, self.output_size, bias=self.bias, nonlinearity=self.nonlinearity))
-        else:
-          self.rnns.append(nn.RNNCell(self.layern_input_size, self.output_size, bias=self.bias, nonlinearity=self.nonlinearity))
       elif self.rnn_type.lower() == 'gru':
-        if layer == 0:
           self.rnns.append(nn.GRUCell(self.layer0_input_size, self.output_size, bias=self.bias))
-        else:
-          self.rnns.append(nn.GRUCell(self.layern_input_size, self.output_size, bias=self.bias))
       elif self.rnn_type.lower() == 'lstm':
-        # if layer == 0:
         self.rnns.append(nn.LSTMCell(self.layer0_input_size, self.output_size, bias=self.bias))
-        # else:
-        #   self.rnns.append(nn.LSTMCell(self.layern_input_size, self.output_size, bias=self.bias))
 
       # memories for each layer
       if not self.share_memory:
@@ -170,7 +161,7 @@ class DNC(nn.Module):
       # the interface vector
       ξ = chx[0] if self.rnn_type.lower() == 'lstm' else chx
       # the output
-      out = self.output_weights(chx[0])
+      out = self.output_weights(chx[0]) if self.rnn_type.lower() == 'lstm' else self.output_weights(chx)
 
       # pass through memory
       if self.share_memory:
