@@ -1,6 +1,6 @@
 # Differentiable Neural Computer, for Pytorch
 
-This is an implementation of [Differentiable Neural Computers](people.idsia.ch/~rupesh/rnnsymposium2016/slides/graves.pdf), described in the paper [Hybrid computing using a neural network with dynamic external memory, Graves et al.](www.nature.com/articles/nature20101)
+This is an implementation of [Differentiable Neural Computers](http://people.idsia.ch/~rupesh/rnnsymposium2016/slides/graves.pdf), described in the paper [Hybrid computing using a neural network with dynamic external memory, Graves et al.](https://www.nature.com/articles/nature20101)
 
 ## Install
 
