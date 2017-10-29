@@ -15,7 +15,7 @@ import sys
 import os
 import math
 import time
-sys.path.append('./dnc/')
+sys.path.insert(0, '.')
 
 from dnc import DNC
 from test_utils import generate_data, criterion
