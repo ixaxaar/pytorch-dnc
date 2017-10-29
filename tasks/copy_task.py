@@ -151,6 +151,7 @@ if __name__ == '__main__':
     # apply_dict(locals())
     loss.backward()
 
+    T.nn.utils.clip_grad_norm(rnn.parameters(), args.clip)
     optimizer.step()
     loss_value = loss.data[0]
 
