@@ -1,0 +1,11 @@
+language: python
+python:
+  - "3.6"
+# command to install dependencies
+install:
+  - pip install http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl
+  - pip install numpy
+  - pip install visdom
+# command to run tests
+script:
+  - pytest
