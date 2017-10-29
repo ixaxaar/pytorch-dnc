@@ -50,11 +50,11 @@ class Memory(nn.Module):
 
     if hidden is None:
       return {
-          'memory': cuda(T.zeros(b, m, w).fill_(0), gpu_id=self.gpu_id),
+          'memory': cuda(T.zeros(b, m, w).fill_(δ), gpu_id=self.gpu_id),
           'link_matrix': cuda(T.zeros(b, 1, m, m), gpu_id=self.gpu_id),
           'precedence': cuda(T.zeros(b, 1, m), gpu_id=self.gpu_id),
-          'read_weights': cuda(T.zeros(b, r, m).fill_(0), gpu_id=self.gpu_id),
-          'write_weights': cuda(T.zeros(b, 1, m).fill_(0), gpu_id=self.gpu_id),
+          'read_weights': cuda(T.zeros(b, r, m).fill_(δ), gpu_id=self.gpu_id),
+          'write_weights': cuda(T.zeros(b, 1, m).fill_(δ), gpu_id=self.gpu_id),
           'usage_vector': cuda(T.zeros(b, m), gpu_id=self.gpu_id)
       }
     else:
