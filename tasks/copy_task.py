@@ -27,9 +27,10 @@ parser = argparse.ArgumentParser(description='PyTorch Differentiable Neural Comp
 parser.add_argument('-input_size', type=int, default=6, help='dimension of input feature')
 parser.add_argument('-rnn_type', type=str, default='lstm', help='type of recurrent cells to use for the controller')
 parser.add_argument('-nhid', type=int, default=64, help='number of hidden units of the inner nn')
-parser.add_argument('-dropout', type=float, default=0.3, help='controller dropout')
+parser.add_argument('-dropout', type=float, default=0, help='controller dropout')
 
 parser.add_argument('-nlayer', type=int, default=2, help='number of layers')
+parser.add_argument('-nhlayer', type=int, default=2, help='number of hidden layers')
 parser.add_argument('-lr', type=float, default=1e-2, help='initial learning rate')
 parser.add_argument('-clip', type=float, default=0.5, help='gradient clipping')
 
@@ -110,14 +111,17 @@ if __name__ == '__main__':
   rnn = DNC(
       input_size=args.input_size,
       hidden_size=args.nhid,
-      rnn_type='lstm',
+      rnn_type=args.rnn_type,
       num_layers=args.nlayer,
+      num_hidden_layers=args.nhlayer,
+      dropout=args.dropout,
       nr_cells=mem_slot,
       cell_size=mem_size,
       read_heads=read_heads,
       gpu_id=args.cuda,
       debug=True
   )
+  print(rnn)
 
   if args.cuda != -1:
     rnn = rnn.cuda(args.cuda)
@@ -166,7 +170,7 @@ if __name__ == '__main__':
               xtickstep=10,
               ytickstep=2,
               title='Timestep: ' + str(epoch) + ', loss: ' + str(loss),
-              xlabel='mem_slot * time',
+              xlabel='mem_slot * layer',
               ylabel='mem_size'
           )
       )
