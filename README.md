@@ -94,7 +94,6 @@ The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_fre
 ## General noteworthy stuff
 
 1. DNCs converge with Adam and RMSProp learning rules, SGD generally causes them to diverge.
-2. Using a large batch size (> 100, recommended 1000) prevents gradients from becoming `NaN`.
 
 Repos referred to for creation of this repo:
 
