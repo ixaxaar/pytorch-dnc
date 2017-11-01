@@ -141,7 +141,7 @@ if __name__ == '__main__':
     target_output = target_output.transpose(0, 1).contiguous()
 
     output, (chx, mhx, rv), v = rnn(input_data, None)
-
+    # dncs operate batch first
     output = output.transpose(0, 1)
 
     loss = criterion((output), target_output)
@@ -166,13 +166,13 @@ if __name__ == '__main__':
       last_save_losses = []
 
       viz.heatmap(
-          v.data.cpu().numpy(),
+          v,
           opts=dict(
               xtickstep=10,
               ytickstep=2,
               title='Timestep: ' + str(epoch) + ', loss: ' + str(loss),
-              xlabel='mem_slot * layer',
-              ylabel='mem_size'
+              ylabel='layer * time',
+              xlabel='cell_size * mem_size'
           )
       )
 
