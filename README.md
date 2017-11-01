@@ -10,6 +10,10 @@ This is an implementation of [Differentiable Neural Computers](http://people.ids
 pip install dnc
 ```
 
+## Architecure
+
+<img src="./docs/dnc.png" height="600" />
+
 ## Usage
 
 **Parameters**:
@@ -20,6 +24,7 @@ pip install dnc
 | hidden_size | None | Size of hidden units |
 | rnn_type | 'lstm' | Type of recurrent cells used in the controller |
 | num_layers | 1 | Number of layers of recurrent units in the controller |
+| num_hidden_layers | 2 | Number of hidden layers per layer of the controller |
 | bias | True | Bias |
 | batch_first | True | Whether data is fed batch first |
 | dropout | 0 | Dropout between layers in the controller |
@@ -90,4 +95,9 @@ The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_fre
 
 1. DNCs converge with Adam and RMSProp learning rules, SGD generally causes them to diverge.
 2. Using a large batch size (> 100, recommended 1000) prevents gradients from becoming `NaN`.
+
+Repos referred to for creation of this repo:
+https://github.com/deepmind/dnc
+https://github.com/ypxie/pytorch-NeuCom
+https://github.com/jingweiz/pytorch-dnc
 
