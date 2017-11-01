@@ -88,7 +88,7 @@ python ./tasks/copy_task.py -cuda 0
 
 The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_freq` iteration:
 
-![Visdom dashboard](https://user-images.githubusercontent.com/144122/32119691-a54ebd86-bb73-11e7-9ffa-4fa720d7a21a.png)
+![Visdom dashboard](./docs/dnc-mem-debug.png)
 
 
 ## General noteworthy stuff
