@@ -97,7 +97,8 @@ The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_fre
 2. Using a large batch size (> 100, recommended 1000) prevents gradients from becoming `NaN`.
 
 Repos referred to for creation of this repo:
-https://github.com/deepmind/dnc
-https://github.com/ypxie/pytorch-NeuCom
-https://github.com/jingweiz/pytorch-dnc
+
+- [deepmind/dnc](https://github.com/deepmind/dnc)
+- [ypxie/pytorch-NeuCom](https://github.com/ypxie/pytorch-NeuCom)
+- [jingweiz/pytorch-dnc](https://github.com/jingweiz/pytorch-dnc)
 
