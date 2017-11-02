@@ -172,7 +172,7 @@ if __name__ == '__main__':
               ytickstep=2,
               title='Memory, t: ' + str(epoch) + ', loss: ' + str(loss),
               ylabel='layer * time',
-              xlabel='cell_size * mem_size'
+              xlabel='mem_slot * mem_size'
           )
       )
 
@@ -183,7 +183,7 @@ if __name__ == '__main__':
               ytickstep=2,
               title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
               ylabel='layer * time',
-              xlabel='mem_size * mem_size'
+              xlabel='mem_slot * mem_slot'
           )
       )
 
@@ -194,7 +194,7 @@ if __name__ == '__main__':
               ytickstep=2,
               title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
               ylabel='layer * time',
-              xlabel='mem_size'
+              xlabel='mem_slot'
           )
       )
 
@@ -205,7 +205,7 @@ if __name__ == '__main__':
               ytickstep=2,
               title='Read Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
               ylabel='layer * time',
-              xlabel='nr_read_heads * mem_size'
+              xlabel='nr_read_heads * mem_slot'
           )
       )
 
@@ -216,7 +216,7 @@ if __name__ == '__main__':
               ytickstep=2,
               title='Write Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
               ylabel='layer * time',
-              xlabel='mem_size'
+              xlabel='mem_slot'
           )
       )
 
@@ -227,7 +227,7 @@ if __name__ == '__main__':
               ytickstep=2,
               title='Usage Vector, t: ' + str(epoch) + ', loss: ' + str(loss),
               ylabel='layer * time',
-              xlabel='mem_size'
+              xlabel='mem_slot'
           )
       )
 
