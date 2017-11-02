@@ -166,13 +166,68 @@ if __name__ == '__main__':
       last_save_losses = []
 
       viz.heatmap(
-          v,
+          v['memory'],
           opts=dict(
               xtickstep=10,
               ytickstep=2,
-              title='Timestep: ' + str(epoch) + ', loss: ' + str(loss),
+              title='Memory, t: ' + str(epoch) + ', loss: ' + str(loss),
               ylabel='layer * time',
               xlabel='cell_size * mem_size'
+          )
+      )
+
+      viz.heatmap(
+          v['link_matrix'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_size * mem_size'
+          )
+      )
+
+      viz.heatmap(
+          v['precedence'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_size'
+          )
+      )
+
+      viz.heatmap(
+          v['read_weights'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Read Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='nr_read_heads * mem_size'
+          )
+      )
+
+      viz.heatmap(
+          v['write_weights'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Write Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_size'
+          )
+      )
+
+      viz.heatmap(
+          v['usage_vector'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Usage Vector, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_size'
           )
       )
 
