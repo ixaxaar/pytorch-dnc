@@ -164,13 +164,29 @@ class DNC(nn.Module):
 
     return chx, mhx, last_read
 
+  def _debug(self, mhx, debug_obj):
+      debug_obj['memory'].append(mhx['memory'][0].data.cpu().numpy())
+      debug_obj['link_matrix'].append(mhx['link_matrix'][0][0].data.cpu().numpy())
+      debug_obj['precedence'].append(mhx['precedence'][0].data.cpu().numpy())
+      debug_obj['read_weights'].append(mhx['read_weights'][0].data.cpu().numpy())
+      debug_obj['write_weights'].append(mhx['write_weights'][0].data.cpu().numpy())
+      debug_obj['usage_vector'].append(mhx['usage_vector'][0].unsqueeze(0).data.cpu().numpy())
+
   def _layer_forward(self, input, layer, hx=(None, None)):
     (chx, mhx) = hx
     max_length = len(input)
     outs = [0] * max_length
     read_vectors = [0] * max_length
 
-    mem_debug = []
+    if self.debug:
+      mem_debug = {
+        "memory": [],
+        "link_matrix": [],
+        "precedence": [],
+        "read_weights": [],
+        "write_weights": [],
+        "usage_vector": [],
+      }
 
     for time in range(max_length):
       # pass through controller
@@ -192,11 +208,11 @@ class DNC(nn.Module):
       if self.share_memory:
         read_vecs, mhx = self.memories[0](ξ, mhx)
         if self.debug:
-          mem_debug.append(mhx['memory'][0].data.cpu().numpy())
+          self._debug(mhx, mem_debug)
       else:
         read_vecs, mhx = self.memories[layer](ξ, mhx)
         if self.debug:
-          mem_debug.append(mhx['memory'][0].data.cpu().numpy())
+          self._debug(mhx, mem_debug)
       read_vectors[time] = read_vecs.view(-1, self.w * self.r)
 
       # get the final output for this time step
@@ -229,7 +245,7 @@ class DNC(nn.Module):
     outputs = None
     chxs = []
     if self.debug:
-      viz = []
+      viz = {}
 
     read_vectors = [last_read] * max_length
     # outs = [input[:, x, :] for x in range(max_length)]
@@ -248,7 +264,15 @@ class DNC(nn.Module):
 
       # debug memory
       if self.debug:
-        viz.append(mem_debug)
+        if viz == {}:
+          viz = mem_debug
+        else:
+          viz["memory"] += mem_debug["memory"]
+          viz["link_matrix"] += mem_debug["link_matrix"]
+          viz["precedence"] += mem_debug["precedence"]
+          viz["read_weights"] += mem_debug["read_weights"]
+          viz["write_weights"] += mem_debug["write_weights"]
+          viz["usage_vector"] += mem_debug["usage_vector"]
 
       # store the memory back (per layer or shared)
       if self.share_memory:
@@ -266,9 +290,8 @@ class DNC(nn.Module):
         # outs = [o for o in outs]
 
     if self.debug:
-      viz = np.array(viz)
-      s = list(viz.shape)
-      viz = viz.reshape(s[0]*s[1], s[2]*s[3])
+      viz = { k: np.array(v) for k,v in viz.items() }
+      viz = { k: v.reshape(v.shape[0], v.shape[1] * v.shape[2]) for k,v in viz.items() }
 
     controller_hidden = chxs
 
