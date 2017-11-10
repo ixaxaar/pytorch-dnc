@@ -18,25 +18,35 @@ pip install dnc
 
 **Parameters**:
 
+Following are the constructor parameters:
+
 | Argument | Default | Description |
 | --- | --- | --- |
-| input_size | None | Size of the input vectors |
-| hidden_size | None | Size of hidden units |
-| rnn_type | 'lstm' | Type of recurrent cells used in the controller |
-| num_layers | 1 | Number of layers of recurrent units in the controller |
-| num_hidden_layers | 2 | Number of hidden layers per layer of the controller |
-| bias | True | Bias |
-| batch_first | True | Whether data is fed batch first |
-| dropout | 0 | Dropout between layers in the controller |
-| bidirectional | False | If the controller is bidirectional (Not yet implemented) |
-| nr_cells | 5 | Number of memory cells |
-| read_heads | 2 | Number of read heads |
-| cell_size | 10 | Size of each memory cell |
-| nonlinearity | 'tanh' | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
-| gpu_id | -1 | ID of the GPU, -1 for CPU |
-| independent_linears | False | Whether to use independent linear units to derive interface vector |
-| share_memory | True | Whether to share memory between controller layers |
-| reset_experience | False | Whether to reset memory (This is a parameter for the forward pass) |
+| input_size | `None` | Size of the input vectors |
+| hidden_size | `None` | Size of hidden units |
+| rnn_type | `'lstm'` | Type of recurrent cells used in the controller |
+| num_layers | `1` | Number of layers of recurrent units in the controller |
+| num_hidden_layers | `2` | Number of hidden layers per layer of the controller |
+| bias | `True` | Bias |
+| batch_first | `True` | Whether data is fed batch first |
+| dropout | `0` | Dropout between layers in the controller |
+| bidirectional | `False` | If the controller is bidirectional (Not yet implemented) |
+| nr_cells | `5` | Number of memory cells |
+| read_heads | `2` | Number of read heads |
+| cell_size | `10` | Size of each memory cell |
+| nonlinearity | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
+| gpu_id | `-1` | ID of the GPU, -1 for CPU |
+| independent_linears | `False` | Whether to use independent linear units to derive interface vector |
+| share_memory | `True` | Whether to share memory between controller layers |
+
+Following are the forward pass parameters:
+
+| Argument | Default | Description |
+| --- | --- | --- |
+| input | - | Whether to reset memory (This is a parameter for the forward pass) |
+| hidden | `(None,None,None)` | Whether to reset memory (This is a parameter for the forward pass) |
+| reset_experience | `False` | Whether to reset memory (This is a parameter for the forward pass) |
+| pass_through_memory | `True` | Whether to pass through memory (This is a parameter for the forward pass) |
 
 
 Example usage:
