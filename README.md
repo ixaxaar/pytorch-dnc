@@ -43,8 +43,8 @@ Following are the forward pass parameters:
 
 | Argument | Default | Description |
 | --- | --- | --- |
-| input | - | Whether to reset memory (This is a parameter for the forward pass) |
-| hidden | `(None,None,None)` | Whether to reset memory (This is a parameter for the forward pass) |
+| input | - | The input vector `(B*T*X)` or `(T*B*X)` |
+| hidden | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
 | reset_experience | `False` | Whether to reset memory (This is a parameter for the forward pass) |
 | pass_through_memory | `True` | Whether to pass through memory (This is a parameter for the forward pass) |
 
