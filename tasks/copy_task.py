@@ -140,7 +140,7 @@ if __name__ == '__main__':
     # input_data = input_data.transpose(0, 1).contiguous()
     target_output = target_output.transpose(0, 1).contiguous()
 
-    output, (chx, mhx, rv), v = rnn(input_data, None)
+    output, (chx, mhx, rv), v = rnn(input_data, None, pass_through_memory=True)
     # dncs operate batch first
     output = output.transpose(0, 1)
 
