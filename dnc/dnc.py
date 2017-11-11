@@ -33,7 +33,8 @@ class DNC(nn.Module):
       gpu_id=-1,
       independent_linears=False,
       share_memory=True,
-      debug=False
+      debug=False,
+      clip=20
   ):
     super(DNC, self).__init__()
     # todo: separate weights and RNNs for the interface and output vectors
@@ -55,6 +56,7 @@ class DNC(nn.Module):
     self.independent_linears = independent_linears
     self.share_memory = share_memory
     self.debug = debug
+    self.clip = clip
 
     self.w = self.cell_size
     self.r = self.read_heads
@@ -72,13 +74,13 @@ class DNC(nn.Module):
     for layer in range(self.num_layers):
       if self.rnn_type.lower() == 'rnn':
         self.rnns.append(nn.RNN((self.nn_input_size if layer == 0 else self.nn_output_size), self.output_size,
-                                bias=self.bias, nonlinearity=self.nonlinearity, batch_first=True))
+                                bias=self.bias, nonlinearity=self.nonlinearity, batch_first=True, dropout=self.dropout))
       elif self.rnn_type.lower() == 'gru':
         self.rnns.append(nn.GRU((self.nn_input_size if layer == 0 else self.nn_output_size),
-                                self.output_size, bias=self.bias, batch_first=True))
+                                self.output_size, bias=self.bias, batch_first=True, dropout=self.dropout))
       if self.rnn_type.lower() == 'lstm':
         self.rnns.append(nn.LSTM((self.nn_input_size if layer == 0 else self.nn_output_size),
-                                 self.output_size, bias=self.bias, batch_first=True))
+                                 self.output_size, bias=self.bias, batch_first=True, dropout=self.dropout))
       setattr(self, self.rnn_type.lower() + '_layer_' + str(layer), self.rnns[layer])
 
       # memories for each layer
@@ -110,9 +112,7 @@ class DNC(nn.Module):
       setattr(self, 'rnn_layer_memory_shared', self.memories[0])
 
     # final output layer
-    self.mem_out = nn.Linear(self.nn_output_size, self.nn_output_size)
     self.output = nn.Linear(self.nn_output_size, self.input_size)
-    self.dropout_layer = nn.Dropout(self.dropout)
 
     if self.gpu_id != -1:
       [x.cuda(self.gpu_id) for x in self.rnns]
@@ -174,8 +174,11 @@ class DNC(nn.Module):
 
     # the interface vector
     ξ = input
-    # the output
-    output = input
+    # clip the controller output
+    if self.clip != 0:
+      output = T.clamp(input, -self.clip, self.clip)
+    else:
+      output = input
 
     # pass through memory
     if pass_through_memory:
@@ -242,7 +245,7 @@ class DNC(nn.Module):
 
         if read_vectors is not None:
           # the controller output + read vectors go into next layer
-          outs[time] = self.dropout_layer(self.mem_out(T.cat([outs[time], read_vectors], 1)))
+          outs[time] = T.cat([outs[time], read_vectors], 1)
         inputs[time] = outs[time]
 
     if self.debug:
