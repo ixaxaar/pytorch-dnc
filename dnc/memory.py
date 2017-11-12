@@ -87,24 +87,18 @@ class Memory(nn.Module):
     # free list
     sorted_usage, φ = T.topk(usage, self.mem_size, dim=1, largest=False)
 
-    # cumprod with exclusive=True, TODO: unstable territory, revisit this shit
-    # essential for correct scaling of allocation_weights to prevent memory pollution
-    # during write operations
+    # cumprod with exclusive=True
     # https://discuss.pytorch.org/t/cumprod-exclusive-true-equivalences/2614/8
-    v = var(T.ones(batch_size, 1))
-    if self.gpu_id != -1:
-      v = v.cuda(self.gpu_id)
-    cat_sorted_usage = T.cat((v, sorted_usage), 1)[:, :-1]
-    prod_sorted_usage = fake_cumprod(cat_sorted_usage, self.gpu_id)
+    v = var(sorted_usage.data.new(batch_size, 1).fill_(1))
+    cat_sorted_usage = T.cat((v, sorted_usage), 1)
+    prod_sorted_usage = T.cumprod(cat_sorted_usage, 1)[:, :-1]
 
     sorted_allocation_weights = (1 - sorted_usage) * prod_sorted_usage.squeeze()
 
     # construct the reverse sorting index https://stackoverflow.com/questions/2483696/undo-or-reverse-argsort-python
     _, φ_rev = T.topk(φ, k=self.mem_size, dim=1, largest=False)
-    allocation_weights = sorted_allocation_weights.gather(1, φ.long())
+    allocation_weights = sorted_allocation_weights.gather(1, φ_rev.long())
 
-    # update usage after allocating
-    # usage += ((1 - usage) * write_gate * allocation_weights)
     return allocation_weights.unsqueeze(1), usage
 
   def write_weighting(self, memory, write_content_weights, allocation_weights, write_gate, allocation_gate):
@@ -145,6 +139,7 @@ class Memory(nn.Module):
         hidden['usage_vector'],
         allocation_gate * write_gate
     )
+    # print((alloc).data.cpu().numpy())
 
     # get write weightings
     hidden['write_weights'] = self.write_weighting(
@@ -244,11 +239,11 @@ class Memory(nn.Module):
       # r read keys (b * w * r)
       read_keys = ξ[:, :r * w].contiguous().view(b, r, w)
       # r read strengths (b * r)
-      read_strengths = 1 + F.relu(ξ[:, r * w:r * w + r].contiguous().view(b, r))
+      read_strengths = ξ[:, r * w:r * w + r].contiguous().view(b, r)
       # write key (b * w * 1)
       write_key = ξ[:, r * w + r:r * w + r + w].contiguous().view(b, 1, w)
       # write strength (b * 1)
-      write_strength = 1 + F.relu(ξ[:, r * w + r + w].contiguous()).view(b, 1)
+      write_strength = ξ[:, r * w + r + w].contiguous().view(b, 1)
       # erase vector (b * w)
       erase_vector = F.sigmoid(ξ[:, r * w + r + w + 1: r * w + r + 2 * w + 1].contiguous().view(b, 1, w))
       # write vector (b * w)

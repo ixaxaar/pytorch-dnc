@@ -29,10 +29,11 @@ parser.add_argument('-rnn_type', type=str, default='lstm', help='type of recurre
 parser.add_argument('-nhid', type=int, default=64, help='number of hidden units of the inner nn')
 parser.add_argument('-dropout', type=float, default=0, help='controller dropout')
 
-parser.add_argument('-nlayer', type=int, default=2, help='number of layers')
+parser.add_argument('-nlayer', type=int, default=1, help='number of layers')
 parser.add_argument('-nhlayer', type=int, default=2, help='number of hidden layers')
-parser.add_argument('-lr', type=float, default=1e-2, help='initial learning rate')
-parser.add_argument('-clip', type=float, default=0.5, help='gradient clipping')
+parser.add_argument('-lr', type=float, default=1e-4, help='initial learning rate')
+parser.add_argument('-optim', type=str, default='adam', help='learning rule, supports adam|rmsprop')
+parser.add_argument('-clip', type=float, default=50, help='gradient clipping')
 
 parser.add_argument('-batch_size', type=int, default=100, metavar='N', help='batch size')
 parser.add_argument('-mem_size', type=int, default=16, help='memory dimension')
@@ -119,7 +120,8 @@ if __name__ == '__main__':
       cell_size=mem_size,
       read_heads=read_heads,
       gpu_id=args.cuda,
-      debug=True
+      debug=True,
+      batch_first=True
   )
   print(rnn)
 
@@ -128,7 +130,10 @@ if __name__ == '__main__':
 
   last_save_losses = []
 
-  optimizer = optim.Adam(rnn.parameters(), lr=args.lr)
+  if args.optim == 'adam':
+    optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
+  elif args.optim == 'rmsprop':
+    optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10)
 
   for epoch in range(iterations + 1):
     llprint("\rIteration {ep}/{tot}".format(ep=epoch, tot=iterations))
@@ -137,18 +142,14 @@ if __name__ == '__main__':
     random_length = np.random.randint(1, sequence_max_length + 1)
 
     input_data, target_output = generate_data(batch_size, random_length, args.input_size, args.cuda)
-    # input_data = input_data.transpose(0, 1).contiguous()
-    target_output = target_output.transpose(0, 1).contiguous()
 
-    output, (chx, mhx, rv), v = rnn(input_data, None)
-
-    output = output.transpose(0, 1)
+    if rnn.debug:
+      output, (chx, mhx, rv), v = rnn(input_data, None, pass_through_memory=True)
+    else:
+      output, (chx, mhx, rv) = rnn(input_data, None, pass_through_memory=True)
 
     loss = criterion((output), target_output)
-    # if np.isnan(loss.data.cpu().numpy()):
-    #    llprint('\nGot nan loss, contine to jump the backward \n')
 
-    # apply_dict(locals())
     loss.backward()
 
     T.nn.utils.clip_grad_norm(rnn.parameters(), args.clip)
@@ -160,19 +161,79 @@ if __name__ == '__main__':
 
     last_save_losses.append(loss_value)
 
-    if summarize:
+    if summarize and rnn.debug:
       loss = np.mean(last_save_losses)
+      # print(input_data)
+      # print("1111111111111111111111111111111111111111111111")
+      # print(target_output)
+      # print('2222222222222222222222222222222222222222222222')
+      # print(F.relu6(output))
       llprint("\n\tAvg. Logistic Loss: %.4f\n" % (loss))
       last_save_losses = []
 
       viz.heatmap(
-          v.data.cpu().numpy(),
+          v['memory'],
           opts=dict(
               xtickstep=10,
               ytickstep=2,
-              title='Timestep: ' + str(epoch) + ', loss: ' + str(loss),
-              xlabel='mem_slot * layer',
-              ylabel='mem_size'
+              title='Memory, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot * mem_size'
+          )
+      )
+
+      viz.heatmap(
+          v['link_matrix'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot * mem_slot'
+          )
+      )
+
+      viz.heatmap(
+          v['precedence'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot'
+          )
+      )
+
+      viz.heatmap(
+          v['read_weights'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Read Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='nr_read_heads * mem_slot'
+          )
+      )
+
+      viz.heatmap(
+          v['write_weights'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Write Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot'
+          )
+      )
+
+      viz.heatmap(
+          v['usage_vector'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Usage Vector, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot'
           )
       )
 
