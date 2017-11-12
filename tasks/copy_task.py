@@ -31,7 +31,8 @@ parser.add_argument('-dropout', type=float, default=0, help='controller dropout'
 
 parser.add_argument('-nlayer', type=int, default=2, help='number of layers')
 parser.add_argument('-nhlayer', type=int, default=2, help='number of hidden layers')
-parser.add_argument('-lr', type=float, default=1e-2, help='initial learning rate')
+parser.add_argument('-lr', type=float, default=1e-4, help='initial learning rate')
+parser.add_argument('-optim', type=str, default='adam', help='learning rule, supports adam|rmsprop')
 parser.add_argument('-clip', type=float, default=50, help='gradient clipping')
 
 parser.add_argument('-batch_size', type=int, default=100, metavar='N', help='batch size')
@@ -129,8 +130,10 @@ if __name__ == '__main__':
 
   last_save_losses = []
 
-  optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
-  # optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10)
+  if args.optim == 'adam':
+    optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
+  elif args.optim == 'rmsprop':
+    optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10)
 
   for epoch in range(iterations + 1):
     llprint("\rIteration {ep}/{tot}".format(ep=epoch, tot=iterations))
