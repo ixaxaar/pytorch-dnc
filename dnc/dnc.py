@@ -33,7 +33,8 @@ class DNC(nn.Module):
       gpu_id=-1,
       independent_linears=False,
       share_memory=True,
-      debug=False
+      debug=False,
+      clip=20
   ):
     super(DNC, self).__init__()
     # todo: separate weights and RNNs for the interface and output vectors
@@ -55,38 +56,32 @@ class DNC(nn.Module):
     self.independent_linears = independent_linears
     self.share_memory = share_memory
     self.debug = debug
+    self.clip = clip
 
     self.w = self.cell_size
     self.r = self.read_heads
 
-    # input size
-    self.nn_input_size = self.r * self.w + self.input_size
-    self.nn_output_size = self.r * self.w + self.hidden_size
-
-    self.interface_size = (self.w * self.r) + (3 * self.w) + (5 * self.r) + 3
+    self.read_vectors_size = self.r * self.w
+    self.interface_size = self.read_vectors_size + (3 * self.w) + (5 * self.r) + 3
     self.output_size = self.hidden_size
 
-    self.rnns = [[None] * self.num_hidden_layers] * self.num_layers
+    self.nn_input_size = self.input_size + self.read_vectors_size
+    self.nn_output_size = self.output_size + self.read_vectors_size
+
+    self.rnns = []
     self.memories = []
 
     for layer in range(self.num_layers):
-      # controllers for each layer
-      for hlayer in range(self.num_hidden_layers):
-        if self.rnn_type.lower() == 'rnn':
-          if hlayer == 0:
-            self.rnns[layer][hlayer] = nn.RNNCell(self.nn_input_size, self.output_size,bias=self.bias, nonlinearity=self.nonlinearity)
-          else:
-            self.rnns[layer][hlayer] = nn.RNNCell(self.output_size, self.output_size,bias=self.bias, nonlinearity=self.nonlinearity)
-        elif self.rnn_type.lower() == 'gru':
-          if hlayer == 0:
-            self.rnns[layer][hlayer] = nn.GRUCell(self.nn_input_size, self.output_size, bias=self.bias)
-          else:
-            self.rnns[layer][hlayer] = nn.GRUCell(self.output_size, self.output_size, bias=self.bias)
-        elif self.rnn_type.lower() == 'lstm':
-          if hlayer == 0:
-            self.rnns[layer][hlayer] = nn.LSTMCell(self.nn_input_size, self.output_size, bias=self.bias)
-          else:
-            self.rnns[layer][hlayer] = nn.LSTMCell(self.output_size, self.output_size, bias=self.bias)
+      if self.rnn_type.lower() == 'rnn':
+        self.rnns.append(nn.RNN((self.nn_input_size if layer == 0 else self.nn_output_size), self.output_size,
+                                bias=self.bias, nonlinearity=self.nonlinearity, batch_first=True, dropout=self.dropout))
+      elif self.rnn_type.lower() == 'gru':
+        self.rnns.append(nn.GRU((self.nn_input_size if layer == 0 else self.nn_output_size),
+                                self.output_size, bias=self.bias, batch_first=True, dropout=self.dropout))
+      if self.rnn_type.lower() == 'lstm':
+        self.rnns.append(nn.LSTM((self.nn_input_size if layer == 0 else self.nn_output_size),
+                                 self.output_size, bias=self.bias, batch_first=True, dropout=self.dropout))
+      setattr(self, self.rnn_type.lower() + '_layer_' + str(layer), self.rnns[layer])
 
       # memories for each layer
       if not self.share_memory:
@@ -100,6 +95,7 @@ class DNC(nn.Module):
                 independent_linears=self.independent_linears
             )
         )
+        setattr(self, 'rnn_layer_memory_' + str(layer), self.memories[layer])
 
     # only one memory shared by all layers
     if self.share_memory:
@@ -113,24 +109,14 @@ class DNC(nn.Module):
               independent_linears=self.independent_linears
           )
       )
-
-    for layer in range(self.num_layers):
-      for hlayer in range(self.num_hidden_layers):
-        setattr(self, 'rnn_layer_' + str(layer) + '_' + str(hlayer), self.rnns[layer][hlayer])
-      if not self.share_memory:
-        setattr(self, 'rnn_layer_memory_' + str(layer), self.memories[layer])
-    if self.share_memory:
       setattr(self, 'rnn_layer_memory_shared', self.memories[0])
 
     # final output layer
-    self.output_weights = nn.Linear(self.output_size, self.output_size)
-    self.mem_out = nn.Linear(self.nn_output_size, self.input_size)
-    self.dropout_layer = nn.Dropout(self.dropout)
+    self.output = nn.Linear(self.nn_output_size, self.input_size)
 
     if self.gpu_id != -1:
-      [x.cuda(self.gpu_id) for y in self.rnns for x in y]
+      [x.cuda(self.gpu_id) for x in self.rnns]
       [x.cuda(self.gpu_id) for x in self.memories]
-      self.mem_out.cuda(self.gpu_id)
 
   def _init_hidden(self, hx, batch_size, reset_experience):
     # create empty hidden states if not provided
@@ -140,11 +126,7 @@ class DNC(nn.Module):
 
     # initialize hidden state of the controller RNN
     if chx is None:
-      chx = cuda(T.zeros(batch_size, self.output_size), gpu_id=self.gpu_id)
-      if self.rnn_type.lower() == 'lstm':
-        chx = [ [ (chx.clone(), chx.clone()) for h in range(self.num_hidden_layers) ] for l in range(self.num_layers) ]
-      else:
-        chx = [ [ chx.clone() for h in range(self.num_hidden_layers) ] for l in range(self.num_layers) ]
+      chx = [None for x in range(self.num_layers)]
 
     # Last read vectors
     if last_read is None:
@@ -164,41 +146,54 @@ class DNC(nn.Module):
 
     return chx, mhx, last_read
 
-  def _layer_forward(self, input, layer, hx=(None, None)):
+  def _debug(self, mhx, debug_obj):
+    if not debug_obj:
+      debug_obj = {
+          'memory': [],
+          'link_matrix': [],
+          'precedence': [],
+          'read_weights': [],
+          'write_weights': [],
+          'usage_vector': [],
+      }
+
+    debug_obj['memory'].append(mhx['memory'][0].data.cpu().numpy())
+    debug_obj['link_matrix'].append(mhx['link_matrix'][0][0].data.cpu().numpy())
+    debug_obj['precedence'].append(mhx['precedence'][0].data.cpu().numpy())
+    debug_obj['read_weights'].append(mhx['read_weights'][0].data.cpu().numpy())
+    debug_obj['write_weights'].append(mhx['write_weights'][0].data.cpu().numpy())
+    debug_obj['usage_vector'].append(mhx['usage_vector'][0].unsqueeze(0).data.cpu().numpy())
+    return debug_obj
+
+  def _layer_forward(self, input, layer, hx=(None, None), pass_through_memory=True):
     (chx, mhx) = hx
-    max_length = len(input)
-    outs = [0] * max_length
-    read_vectors = [0] * max_length
 
-    for time in range(max_length):
-      # pass through controller
-      layer_input = input[time]
-      hchx = []
+    # pass through the controller layer
+    input, chx = self.rnns[layer](input.unsqueeze(1), chx)
+    input = input.squeeze(1)
 
-      for hlayer in range(self.num_hidden_layers):
-        h = self.rnns[layer][hlayer](layer_input, chx[hlayer])
-        layer_input = h[0] if self.rnn_type.lower() == 'lstm' else h
-        hchx.append(h)
-      chx = hchx
+    # the interface vector
+    ξ = input
+    # clip the controller output
+    if self.clip != 0:
+      output = T.clamp(input, -self.clip, self.clip)
+    else:
+      output = input
 
-      # the interface vector
-      ξ = layer_input
-      # the output
-      out = self.output_weights(layer_input)
-
-      # pass through memory
+    # pass through memory
+    if pass_through_memory:
       if self.share_memory:
         read_vecs, mhx = self.memories[0](ξ, mhx)
       else:
         read_vecs, mhx = self.memories[layer](ξ, mhx)
-      read_vectors[time] = read_vecs.view(-1, self.w * self.r)
+      # the read vectors
+      read_vectors = read_vecs.view(-1, self.w * self.r)
+    else:
+      read_vectors = None
 
-      # get the final output for this time step
-      outs[time] = self.dropout_layer(self.mem_out(T.cat([out, read_vectors[time]], 1)))
+    return output, read_vectors, (chx, mhx)
 
-    return outs, read_vectors, (chx, mhx)
-
-  def forward(self, input, hx=(None, None, None), reset_experience=False):
+  def forward(self, input, hx=(None, None, None), reset_experience=False, pass_through_memory=True):
     # handle packed data
     is_packed = type(input) is PackedSequence
     if is_packed:
@@ -210,64 +205,61 @@ class DNC(nn.Module):
 
     batch_size = input.size(0) if self.batch_first else input.size(1)
 
-    # make the data batch-first
     if not self.batch_first:
       input = input.transpose(0, 1)
+    # make the data time-first
 
     controller_hidden, mem_hidden, last_read = self._init_hidden(hx, batch_size, reset_experience)
 
+    # concat input with last read (or padding) vectors
+    inputs = [T.cat([input[:, x, :], last_read], 1) for x in range(max_length)]
+
     # batched forward pass per element / word / etc
-    outputs = None
-    chxs = []
     if self.debug:
-      viz = [mem_hidden['memory'][0]] if self.share_memory else [mem_hidden[0]['memory'][0]]
+      viz = None
 
-    read_vectors = [last_read] * max_length
-    # outs = [input[:, x, :] for x in range(max_length)]
-    outs = [T.cat([input[:, x, :], last_read], 1) for x in range(max_length)]
+    outs = [None] * max_length
+    read_vectors = None
 
-    for layer in range(self.num_layers):
-      # this layer's hidden states
-      chx = controller_hidden[layer]
+    # pass through time
+    for time in range(max_length):
+      # pass thorugh layers
+      for layer in range(self.num_layers):
+        # this layer's hidden states
+        chx = controller_hidden[layer]
+        m = mem_hidden if self.share_memory else mem_hidden[layer]
+        # pass through controller
+        outs[time], read_vectors, (chx, m) = \
+          self._layer_forward(inputs[time], layer, (chx, m), pass_through_memory)
 
-      m = mem_hidden if self.share_memory else mem_hidden[layer]
-      # pass through controller
-      outs, _, (chx, m) = self._layer_forward(
-          outs,
-          layer,
-          (chx, m)
-      )
+        # debug memory
+        if self.debug:
+          viz = self._debug(m, viz)
 
-      # debug memory
-      if self.debug:
-        viz.append(m['memory'][0])
+        # store the memory back (per layer or shared)
+        if self.share_memory:
+          mem_hidden = m
+        else:
+          mem_hidden[layer] = m
+        controller_hidden[layer] = chx
 
-      # store the memory back (per layer or shared)
-      if self.share_memory:
-        mem_hidden = m
-      else:
-        mem_hidden[layer] = m
-      chxs.append(chx)
-
-      if layer == self.num_layers - 1:
-        # final outputs
-        outputs = T.stack(outs, 1)
-      else:
-        # the controller output + read vectors go into next layer
-        outs = [T.cat([o, r], 1) for o, r in zip(outs, read_vectors)]
-        # outs = [o for o in outs]
+        if read_vectors is not None:
+          # the controller output + read vectors go into next layer
+          outs[time] = T.cat([outs[time], read_vectors], 1)
+        inputs[time] = outs[time]
 
     if self.debug:
-      viz = T.cat(viz, 0).transpose(0, 1)
+      viz = {k: np.array(v) for k, v in viz.items()}
+      viz = {k: v.reshape(v.shape[0], v.shape[1] * v.shape[2]) for k, v in viz.items()}
 
-    controller_hidden = chxs
+    # pass through final output layer
+    inputs = [self.output(i) for i in inputs]
+    outputs = T.stack(inputs, 1 if self.batch_first else 0)
 
-    if not self.batch_first:
-      outputs = outputs.transpose(0, 1)
     if is_packed:
       outputs = pack(output, lengths)
 
     if self.debug:
-      return outputs, (controller_hidden, mem_hidden, read_vectors[-1]), viz
+      return outputs, (controller_hidden, mem_hidden, read_vectors), viz
     else:
-      return outputs, (controller_hidden, mem_hidden, read_vectors[-1])
+      return outputs, (controller_hidden, mem_hidden, read_vectors)

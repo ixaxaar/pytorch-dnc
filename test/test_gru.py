@@ -74,7 +74,7 @@ def test_rnn_1():
   assert target_output.size() == T.Size([21, 10, 100])
   assert chx[0][0].size() == T.Size([10,100])
   assert mhx['memory'].size() == T.Size([10,1,1])
-  assert rv.size() == T.Size([10,1])
+  assert rv.size() == T.Size([10, 1])
 
 
 def test_rnn_n():
@@ -128,6 +128,6 @@ def test_rnn_n():
   optimizer.step()
 
   assert target_output.size() == T.Size([27, 10, 100])
-  assert chx[1][2].size() == T.Size([10,100])
+  assert chx[1].size() == T.Size([1,10,100])
   assert mhx['memory'].size() == T.Size([10,12,17])
-  assert rv.size() == T.Size([10,51])
+  assert rv.size() == T.Size([10, 51])
