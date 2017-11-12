@@ -29,7 +29,7 @@ parser.add_argument('-rnn_type', type=str, default='lstm', help='type of recurre
 parser.add_argument('-nhid', type=int, default=64, help='number of hidden units of the inner nn')
 parser.add_argument('-dropout', type=float, default=0, help='controller dropout')
 
-parser.add_argument('-nlayer', type=int, default=2, help='number of layers')
+parser.add_argument('-nlayer', type=int, default=1, help='number of layers')
 parser.add_argument('-nhlayer', type=int, default=2, help='number of hidden layers')
 parser.add_argument('-lr', type=float, default=1e-4, help='initial learning rate')
 parser.add_argument('-optim', type=str, default='adam', help='learning rule, supports adam|rmsprop')
