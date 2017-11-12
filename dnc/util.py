@@ -43,29 +43,6 @@ def cudalong(x, grad=False, gpu_id=-1):
     return var(T.from_numpy(x.astype(np.long)).pin_memory(), requires_grad=grad).cuda(gpu_id, async=True)
 
 
-def fake_cumprod(vb, gpu_id):
-  """
-  args:
-      vb:  [hei x wid]
-        -> NOTE: we are lazy here so now it only supports cumprod along wid
-  """
-  # real_cumprod = torch.cumprod(vb.data, 1)
-  vb = vb.unsqueeze(0)
-  mul_mask_vb = Variable(torch.zeros(vb.size(2), vb.size(1), vb.size(2))).type_as(vb)
-
-  if gpu_id != -1:
-    mul_mask_vb = mul_mask_vb.cuda(gpu_id)
-
-  for i in range(vb.size(2)):
-    mul_mask_vb[i, :, :i + 1] = 1
-  add_mask_vb = 1 - mul_mask_vb
-  vb = vb.expand_as(mul_mask_vb) * mul_mask_vb + add_mask_vb
-  # vb = torch.prod(vb, 2).transpose(0, 2)                # 0.1.12
-  vb = torch.prod(vb, 2, keepdim=True).transpose(0, 2)    # 0.2.0
-  # print(real_cumprod - vb.data) # NOTE: checked, ==0
-  return vb
-
-
 def θ(a, b, dimA=2, dimB=2, normBy=2):
   """Batchwise Cosine distance
 
