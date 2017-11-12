@@ -78,7 +78,7 @@ The copy task, as descibed in the original paper, is included in the repo.
 
 From the project root:
 ```bash
-python ./tasks/copy_task.py -cuda 0
+python ./tasks/copy_task.py -cuda 0 -optim rmsprop -batch_size 100 -mem_slot 64
 ```
 
 The copy task can be used to debug memory using [Visdom](https://github.com/facebookresearch/visdom).
