@@ -50,11 +50,11 @@ class Memory(nn.Module):
 
     if hidden is None:
       return {
-          'memory': cuda(T.zeros(b, m, w).fill_(δ), gpu_id=self.gpu_id),
+          'memory': cuda(T.zeros(b, m, w).fill_(0), gpu_id=self.gpu_id),
           'link_matrix': cuda(T.zeros(b, 1, m, m), gpu_id=self.gpu_id),
           'precedence': cuda(T.zeros(b, 1, m), gpu_id=self.gpu_id),
-          'read_weights': cuda(T.zeros(b, r, m).fill_(δ), gpu_id=self.gpu_id),
-          'write_weights': cuda(T.zeros(b, 1, m).fill_(δ), gpu_id=self.gpu_id),
+          'read_weights': cuda(T.zeros(b, r, m).fill_(0), gpu_id=self.gpu_id),
+          'write_weights': cuda(T.zeros(b, 1, m).fill_(0), gpu_id=self.gpu_id),
           'usage_vector': cuda(T.zeros(b, m), gpu_id=self.gpu_id)
       }
     else:
@@ -66,11 +66,11 @@ class Memory(nn.Module):
       hidden['usage_vector'] = hidden['usage_vector'].clone()
 
       if erase:
-        hidden['memory'].data.fill_(δ)
+        hidden['memory'].data.fill_(0)
         hidden['link_matrix'].data.zero_()
         hidden['precedence'].data.zero_()
-        hidden['read_weights'].data.fill_(δ)
-        hidden['write_weights'].data.fill_(δ)
+        hidden['read_weights'].data.fill_(0)
+        hidden['write_weights'].data.fill_(0)
         hidden['usage_vector'].data.zero_()
     return hidden
 
@@ -116,7 +116,7 @@ class Memory(nn.Module):
     new_link_matrix = write_weights_i * precedence
 
     link_matrix = prev_scale * link_matrix + new_link_matrix
-    # elaborate trick to delete diag elems
+    # trick to delete diag elems
     return self.I.expand_as(link_matrix) * link_matrix
 
   def update_precedence(self, precedence, write_weights):
@@ -139,7 +139,6 @@ class Memory(nn.Module):
         hidden['usage_vector'],
         allocation_gate * write_gate
     )
-    # print((alloc).data.cpu().numpy())
 
     # get write weightings
     hidden['write_weights'] = self.write_weighting(
@@ -170,8 +169,7 @@ class Memory(nn.Module):
 
   def content_weightings(self, memory, keys, strengths):
     d = θ(memory, keys)
-    strengths = F.softplus(strengths).unsqueeze(2)
-    return σ(d * strengths, 2)
+    return σ(d * strengths.unsqueeze(2), 2)
 
   def directional_weightings(self, link_matrix, read_weights):
     rw = read_weights.unsqueeze(1)
@@ -215,17 +213,17 @@ class Memory(nn.Module):
 
     if self.independent_linears:
       # r read keys (b * r * w)
-      read_keys = self.read_keys_transform(ξ).view(b, r, w)
+      read_keys = F.tanh(self.read_keys_transform(ξ).view(b, r, w))
       # r read strengths (b * r)
-      read_strengths = self.read_strengths_transform(ξ).view(b, r)
+      read_strengths = F.softplus(self.read_strengths_transform(ξ).view(b, r))
       # write key (b * 1 * w)
-      write_key = self.write_key_transform(ξ).view(b, 1, w)
+      write_key = F.tanh(self.write_key_transform(ξ).view(b, 1, w))
       # write strength (b * 1)
-      write_strength = self.write_strength_transform(ξ).view(b, 1)
+      write_strength = F.softplus(self.write_strength_transform(ξ).view(b, 1))
       # erase vector (b * 1 * w)
       erase_vector = F.sigmoid(self.erase_vector_transform(ξ).view(b, 1, w))
       # write vector (b * 1 * w)
-      write_vector = self.write_vector_transform(ξ).view(b, 1, w)
+      write_vector = F.tanh(self.write_vector_transform(ξ).view(b, 1, w))
       # r free gates (b * r)
       free_gates = F.sigmoid(self.free_gates_transform(ξ).view(b, r))
       # allocation gate (b * 1)
@@ -237,17 +235,17 @@ class Memory(nn.Module):
     else:
       ξ = self.interface_weights(ξ)
       # r read keys (b * w * r)
-      read_keys = ξ[:, :r * w].contiguous().view(b, r, w)
+      read_keys = F.tanh(ξ[:, :r * w].contiguous().view(b, r, w))
       # r read strengths (b * r)
-      read_strengths = ξ[:, r * w:r * w + r].contiguous().view(b, r)
+      read_strengths = F.softplus(ξ[:, r * w:r * w + r].contiguous().view(b, r))
       # write key (b * w * 1)
-      write_key = ξ[:, r * w + r:r * w + r + w].contiguous().view(b, 1, w)
+      write_key = F.tanh(ξ[:, r * w + r:r * w + r + w].contiguous().view(b, 1, w))
       # write strength (b * 1)
-      write_strength = ξ[:, r * w + r + w].contiguous().view(b, 1)
+      write_strength = F.softplus(ξ[:, r * w + r + w].contiguous().view(b, 1))
       # erase vector (b * w)
       erase_vector = F.sigmoid(ξ[:, r * w + r + w + 1: r * w + r + 2 * w + 1].contiguous().view(b, 1, w))
       # write vector (b * w)
-      write_vector = ξ[:, r * w + r + 2 * w + 1: r * w + r + 3 * w + 1].contiguous().view(b, 1, w)
+      write_vector = F.tanh(ξ[:, r * w + r + 2 * w + 1: r * w + r + 3 * w + 1].contiguous().view(b, 1, w))
       # r free gates (b * r)
       free_gates = F.sigmoid(ξ[:, r * w + r + 3 * w + 1: r * w + 2 * r + 3 * w + 1].contiguous().view(b, r))
       # allocation gate (b * 1)
