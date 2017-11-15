@@ -132,9 +132,20 @@ if __name__ == '__main__':
   last_save_losses = []
 
   if args.optim == 'adam':
-    optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
+    optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
+  if args.optim == 'sparseadam':
+    optimizer = optim.SparseAdam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
+  if args.optim == 'adamax':
+    optimizer = optim.Adamax(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
   elif args.optim == 'rmsprop':
-    optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10)
+    optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10) # 0.0001
+  elif args.optim == 'sgd':
+    optimizer = optim.SGD(rnn.parameters(), lr=args.lr) # 0.01
+  elif args.optim == 'adagrad':
+    optimizer = optim.Adagrad(rnn.parameters(), lr=args.lr)
+  elif args.optim == 'adadelta':
+    optimizer = optim.Adadelta(rnn.parameters(), lr=args.lr)
+
 
   for epoch in range(iterations + 1):
     llprint("\rIteration {ep}/{tot}".format(ep=epoch, tot=iterations))
