@@ -148,7 +148,9 @@ The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_fre
 
 ## General noteworthy stuff
 
-1. DNCs converge with Adam and RMSProp learning rules, SGD generally causes them to diverge.
+1. DNCs converge faster with Adam and RMSProp learning rules, SGD generally converges extremely slowly.
+The copy task, for example, takes 25k iterations on SGD with lr 1 compared to 3.5k for adam with lr 0.01.
+2. `nan`s in the gradients are common, try with different batch sizes
 
 Repos referred to for creation of this repo:
 
