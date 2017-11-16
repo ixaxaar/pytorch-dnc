@@ -10,6 +10,8 @@ This is an implementation of [Differentiable Neural Computers](http://people.ids
 pip install dnc
 ```
 
+To run the tests in the test directory, `pytest` is needed.
+
 ## Architecure
 
 <img src="./docs/dnc.png" height="600" />
