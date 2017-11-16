@@ -173,7 +173,7 @@ class DNC(nn.Module):
     input = input.squeeze(1)
 
     # the interface vector
-    ξ = input
+    ep = input
     # clip the controller output
     if self.clip != 0:
       output = T.clamp(input, -self.clip, self.clip)
@@ -183,9 +183,9 @@ class DNC(nn.Module):
     # pass through memory
     if pass_through_memory:
       if self.share_memory:
-        read_vecs, mhx = self.memories[0](ξ, mhx)
+        read_vecs, mhx = self.memories[0](ep, mhx)
       else:
-        read_vecs, mhx = self.memories[layer](ξ, mhx)
+        read_vecs, mhx = self.memories[layer](ep, mhx)
       # the read vectors
       read_vectors = read_vecs.view(-1, self.w * self.r)
     else:
