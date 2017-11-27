@@ -18,7 +18,6 @@ class SparseMemory(nn.Module):
       input_size,
       mem_size=512,
       cell_size=32,
-      read_heads=4,
       gpu_id=-1,
       independent_linears=True,
       sparse_reads=4,
@@ -30,7 +29,6 @@ class SparseMemory(nn.Module):
 
     self.mem_size = mem_size
     self.cell_size = cell_size
-    self.read_heads = read_heads
     self.gpu_id = gpu_id
     self.input_size = input_size
     self.independent_linears = independent_linears
@@ -43,15 +41,15 @@ class SparseMemory(nn.Module):
 
     m = self.mem_size
     w = self.cell_size
-    r = self.read_heads
+    r = self.K
 
     if self.independent_linears:
-      self.read_keys_transform = nn.Linear(self.input_size, w * r)
+      self.read_keys_transform = nn.Linear(self.input_size, w)
       self.write_key_transform = nn.Linear(self.input_size, w)
       self.write_vector_transform = nn.Linear(self.input_size, w)
       self.write_gate_transform = nn.Linear(self.input_size, 1)
     else:
-      self.interface_size = (w * r) + (2 * w) + 1
+      self.interface_size = (3 * w) + 1
       self.interface_weights = nn.Linear(self.input_size, self.interface_size)
 
     self.I = cuda(1 - T.eye(m).unsqueeze(0), gpu_id=self.gpu_id)  # (1 * n * n)
@@ -73,14 +71,13 @@ class SparseMemory(nn.Module):
   def reset(self, batch_size=1, hidden=None, erase=True):
     m = self.mem_size
     w = self.cell_size
-    r = self.read_heads
     b = batch_size
 
     if hidden is None:
       hidden = {
           # warning can be a huge chunk of contiguous memory
           'sparse': np.zeros((b, m, w), dtype=np.float32),
-          'read_weights': cuda(T.zeros(b, r, m).fill_(δ), gpu_id=self.gpu_id),
+          'read_weights': cuda(T.zeros(b, 1, m).fill_(δ), gpu_id=self.gpu_id),
           'write_weights': cuda(T.zeros(b, 1, m).fill_(δ), gpu_id=self.gpu_id)
       }
       # Build FLANN randomized k-d tree indexes for each batch
@@ -108,25 +105,27 @@ class SparseMemory(nn.Module):
   def read_from_sparse_memory(self, sparse, dict, keys):
     keys = keys.data.cpu().numpy()
     read_vectors = []
-    positions = []
+    read_positions = []
     read_weights = []
 
-    # search nearest neighbor for each key
-    for key in range(keys.shape[1]):
-      print(key, keys.shape)
-      # search for K nearest neighbours given key for each batch
-      search = [h.nn_index(keys[b, key, :], num_neighbors=self.K) for b, h in enumerate(dict)]
+    for batch in range(keys.shape[0]):
+      d = []; rv = []; p = []
 
-      distances = [m[1] for m in search]
-      v = [cudavec(sparse[m[0]], gpu_id=self.gpu_id) for m in search]
-      v = v
-      p = [m[0] for m in search]
+      # search nearest neighbor for each key
+      for key in range(keys.shape[1]):
+        positions, distances = dict[batch].nn_index(keys[batch, key, :], num_neighbors=self.K)
+        distances = distances / max(distances)
+        positions = positions[0] if self.K > 1 else positions
+        read_vector = [sparse[batch, p] for p in list(positions)]
 
-      read_vectors.append(T.stack(v, 0).contiguous())
-      positions.append(p)
-      read_weights.append(distances / max(distances))
+        d.append(distances)
+        rv.append(read_vector)
+        p.append(positions)
+      read_weights.append(d)
+      read_vectors.append(rv)
+      read_positions.append(p)
 
-    read_vectors = T.stack(read_vectors, 0)
+    read_vectors = cudavec(np.array(read_vectors), gpu_id=self.gpu_id)
     read_weights = cudavec(np.array(read_weights), gpu_id=self.gpu_id)
 
     return read_vectors, positions, read_weights
@@ -145,12 +144,12 @@ class SparseMemory(nn.Module):
     # ξ = ξ.detach()
     m = self.mem_size
     w = self.cell_size
-    r = self.read_heads
+    r = self.K
     b = ξ.size()[0]
 
     if self.independent_linears:
       # r read keys (b * r * w)
-      read_keys = self.read_keys_transform(ξ).view(b, r, w)
+      read_keys = self.read_keys_transform(ξ).view(b, 1, w)
       # write key (b * 1 * w)
       write_key = self.write_key_transform(ξ).view(b, 1, w)
       # write vector (b * 1 * w)
@@ -160,11 +159,11 @@ class SparseMemory(nn.Module):
     else:
       ξ = self.interface_weights(ξ)
       # r read keys (b * w * r)
-      read_keys = ξ[:, :r * w].contiguous().view(b, r, w)
+      read_keys = ξ[:, :w].contiguous().view(b, 1, w)
       # write key (b * w * 1)
-      write_key = ξ[:, r * w:r * w + w].contiguous().view(b, 1, w)
+      write_key = ξ[:, w: 2*w].contiguous().view(b, 1, w)
       # write vector (b * w)
-      write_vector = ξ[:, r * w + w: r * w + 2 * w].contiguous().view(b, 1, w)
+      write_vector = ξ[:, 2*w: 3*w].contiguous().view(b, 1, w)
       # write gate (b * 1)
       write_gate = F.sigmoid(ξ[:, -1].contiguous()).unsqueeze(1).view(b, 1)
 
