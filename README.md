@@ -10,6 +10,22 @@ This is an implementation of [Differentiable Neural Computers](http://people.ids
 pip install dnc
 ```
 
+For using sparse DNCs, additional libraries are required:
+
+### FLANN
+
+```bash
+git clone https://github.com/mariusmuja/flann.git
+cd flann
+git checkout 1.9.1
+mkdir build
+cd build
+cmake -DBUILD_CUDA_LIB=ON -DCMAKE_C_COMPILER=/opt/cuda/bin/gcc -DCMAKE_CXX_COMPILER=/opt/cuda/bin/g++ ..
+make
+sudo make install
+```
+
+
 ## Architecure
 
 <img src="./docs/dnc.png" height="600" />

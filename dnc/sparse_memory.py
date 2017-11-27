@@ -6,6 +6,8 @@ from torch.autograd import Variable as var
 import torch.nn.functional as F
 import numpy as np
 
+from pyflann import FLANN
+
 from .util import *
 
 class SparseMemory(nn.Module):
@@ -18,7 +20,10 @@ class SparseMemory(nn.Module):
     read_heads=4,
     gpu_id=-1,
     independent_linears=True,
-    sparse_reads=4
+    sparse_reads=4,
+    num_kdtrees=4,
+    index_checks=32,
+    rebuild_indexes_after=10
     ):
     super(Memory, self).__init__()
 
@@ -29,6 +34,11 @@ class SparseMemory(nn.Module):
     self.input_size = input_size
     self.independent_linears = independent_linears
     self.K = sparse_reads
+    self.num_kdtrees = num_kdtrees
+    self.index_checks = index_checks
+    self.rebuild_indexes_after = rebuild_indexes_after
+
+    self.index_reset_ctr = 0
 
     m = self.mem_size
     w = self.cell_size
@@ -50,6 +60,20 @@ class SparseMemory(nn.Module):
       self.interface_weights = nn.Linear(self.input_size, self.interface_size)
 
     self.I = cuda(1 - T.eye(m).unsqueeze(0), gpu_id=self.gpu_id)  # (1 * n * n)
+    self.last_used_mem = 0
+
+  def rebuild_indexes(self, hidden):
+    b = hidden['sparse'].shape[0]
+
+    if self.rebuild_indexes_after == self.index_reset_ctr or 'dict' not in hidden:
+      self.index_reset_ctr = 0
+      hidden['dict'] = [ FLANN() for x in range(b) ]
+      hidden['dict'] = [ \
+        x.build_index(hidden['sparse'][n], algorithm='kdtree', trees=self.num_kdtrees, checks=self.index_checks)
+        for n,x in enumerate(hidden['dict'])
+      ]
+    self.index_reset_ctr += 1
+    return hidden
 
   def reset(self, batch_size=1, hidden=None, erase=True):
     m = self.mem_size
@@ -58,16 +82,20 @@ class SparseMemory(nn.Module):
     b = batch_size
 
     if hidden is None:
-      return {
-          'memory': cuda(T.zeros(b, m, w).fill_(δ), gpu_id=self.gpu_id),
+      hx = {
+          # warning can be a huge chunk of contiguous memory
+          'sparse': np.zeros((b, m, w)),
+          # 'memory': cuda(T.zeros(b, m, w).fill_(δ), gpu_id=self.gpu_id),
           'link_matrix': cuda(T.zeros(b, 1, m, m), gpu_id=self.gpu_id),
           'precedence': cuda(T.zeros(b, 1, m), gpu_id=self.gpu_id),
           'read_weights': cuda(T.zeros(b, r, m).fill_(δ), gpu_id=self.gpu_id),
           'write_weights': cuda(T.zeros(b, 1, m).fill_(δ), gpu_id=self.gpu_id),
           'usage_vector': cuda(T.zeros(b, m), gpu_id=self.gpu_id)
       }
+      # Build FLANN randomized k-d tree indexes for each batch
+      hx = rebuild_indexes(hx)
     else:
-      hidden['memory'] = hidden['memory'].clone()
+      # hidden['memory'] = hidden['memory'].clone()
       hidden['link_matrix'] = hidden['link_matrix'].clone()
       hidden['precedence'] = hidden['precedence'].clone()
       hidden['read_weights'] = hidden['read_weights'].clone()
@@ -75,7 +103,9 @@ class SparseMemory(nn.Module):
       hidden['usage_vector'] = hidden['usage_vector'].clone()
 
       if erase:
-        hidden['memory'].data.fill_(δ)
+        hidden = self.rebuild_indexes(hidden)
+        hidden['sparse'].fill(0)
+        # hidden['memory'].data.fill_(δ)
         hidden['link_matrix'].data.zero_()
         hidden['precedence'].data.zero_()
         hidden['read_weights'].data.fill_(δ)
@@ -116,7 +146,7 @@ class SparseMemory(nn.Module):
     # usage += ((1 - usage) * write_gate * allocation_weights)
     return allocation_weights.unsqueeze(1), usage
 
-  def write_weighting(self, memory, write_content_weights, allocation_weights, write_gate, allocation_gate):
+  def write_weighting(self, write_content_weights, allocation_weights, write_gate, allocation_gate):
     ag = allocation_gate.unsqueeze(-1)
     wg = write_gate.unsqueeze(-1)
 
@@ -137,7 +167,13 @@ class SparseMemory(nn.Module):
   def update_precedence(self, precedence, write_weights):
     return (1 - T.sum(write_weights, 2, keepdim=True)) * precedence + write_weights
 
-  def write(self, write_key, write_vector, erase_vector, free_gates, read_strengths, write_strength, write_gate, allocation_gate, hidden):
+  def write(self, write_key, write_vector, write_gate, hidden):
+    write_weights = write_gate * ( \
+      interpolation_gate * hidden['read_weights'] + \
+      (1 - interpolation_gate)*cuda(T.ones(hidden['read_weights'].size()), gpu_id=self.gpu_id) )
+
+    # write_weights * write_vector
+
     # get current usage
     hidden['usage_vector'] = self.get_usage_vector(
         hidden['usage_vector'],
@@ -157,7 +193,6 @@ class SparseMemory(nn.Module):
 
     # get write weightings
     hidden['write_weights'] = self.write_weighting(
-        hidden['memory'],
         write_content_weights,
         alloc,
         write_gate,
@@ -182,45 +217,37 @@ class SparseMemory(nn.Module):
 
     return hidden
 
-  def content_weightings(self, memory, keys, strengths):
-    d = θ(memory, keys)
-    strengths = F.softplus(strengths).unsqueeze(2)
-    return σ(d * strengths, 2)
+  def read_from_sparse_memory(self, sparse, dict, keys):
+    ks = keys.data.cpu().numpy()
+    read_vectors = []
+    positions = []
+    read_weights = []
 
+    # search nearest neighbor for each key
+    for k in range(ks.shape[1]):
+      # search for K nearest neighbours given key for each batch
+      search = [ h.nn_index(k[n], num_neighbours=self.K) for n,h in enumerate(dict) ]
 
+      distances = [ m[1] for m in search ]
+      v = [ cudavec(sparse[m[0]], gpu_id=self.gpu_id) for m in search ]
+      v = v
+      p = [ m[0] for m in search ]
 
+      read_vectors.append(T.stack(v, 0).contiguous())
+      positions.append(p)
+      read_weights.append(distances / max(distances))
 
+    read_vectors = T.stack(read_vectors, 0)
+    read_weights = cudavec(np.array(read_weights), gpu_id=self.gpu_id)
 
-  def directional_weightings(self, link_matrix, read_weights):
-    rw = read_weights.unsqueeze(1)
+    return read_vectors, positions, read_weights
 
-    f = T.matmul(link_matrix, rw.transpose(2, 3)).transpose(2, 3)
-    b = T.matmul(rw, link_matrix)
-    return f.transpose(1, 2), b.transpose(1, 2)
+  def read(self, read_keys, hidden):
+    # sparse read
+    read_vectors, positions, read_weights = self.read_from_sparse_memory(hidden['sparse'], hidden['dict'], read_keys)
+    hidden['read_positions'] = positions
+    hidden['read_weights'] = read_weights
 
-  def read_weightings(self, memory, content_weights, link_matrix, read_modes, read_weights):
-    forward_weight, backward_weight = self.directional_weightings(link_matrix, read_weights)
-
-    content_mode = read_modes[:, :, 2].contiguous().unsqueeze(2) * content_weights
-    backward_mode = T.sum(read_modes[:, :, 0:1].contiguous().unsqueeze(3) * backward_weight, 2)
-    forward_mode = T.sum(read_modes[:, :, 1:2].contiguous().unsqueeze(3) * forward_weight, 2)
-
-    return backward_mode + content_mode + forward_mode
-
-  def read_vectors(self, memory, read_weights):
-    return T.bmm(read_weights, memory)
-
-  def read(self, read_keys, read_strengths, read_modes, hidden):
-    content_weights = self.content_weightings(hidden['memory'], read_keys, read_strengths)
-
-    hidden['read_weights'] = self.read_weightings(
-        hidden['memory'],
-        content_weights,
-        hidden['link_matrix'],
-        read_modes,
-        hidden['read_weights']
-    )
-    read_vectors = self.read_vectors(hidden['memory'], hidden['read_weights'])
     return read_vectors, hidden
 
   def forward(self, ξ, hidden):
@@ -234,8 +261,6 @@ class SparseMemory(nn.Module):
     if self.independent_linears:
       # r read keys (b * r * w)
       read_keys = self.read_keys_transform(ξ).view(b, r, w)
-      # r read strengths (b * r)
-      read_strengths = self.read_strengths_transform(ξ).view(b, r)
       # write key (b * 1 * w)
       write_key = self.write_key_transform(ξ).view(b, 1, w)
       # write strength (b * 1)
@@ -250,14 +275,10 @@ class SparseMemory(nn.Module):
       allocation_gate = F.sigmoid(self.allocation_gate_transform(ξ).view(b, 1))
       # write gate (b * 1)
       write_gate = F.sigmoid(self.write_gate_transform(ξ).view(b, 1))
-      # read modes (b * r * 3)
-      read_modes = σ(self.read_modes_transform(ξ).view(b, r, 3), 1)
     else:
       ξ = self.interface_weights(ξ)
       # r read keys (b * w * r)
       read_keys = ξ[:, :r * w].contiguous().view(b, r, w)
-      # r read strengths (b * r)
-      read_strengths = 1 + F.relu(ξ[:, r * w:r * w + r].contiguous().view(b, r))
       # write key (b * w * 1)
       write_key = ξ[:, r * w + r:r * w + r + w].contiguous().view(b, 1, w)
       # write strength (b * 1)
@@ -272,9 +293,7 @@ class SparseMemory(nn.Module):
       allocation_gate = F.sigmoid(ξ[:, r * w + 2 * r + 3 * w + 1].contiguous().unsqueeze(1).view(b, 1))
       # write gate (b * 1)
       write_gate = F.sigmoid(ξ[:, r * w + 2 * r + 3 * w + 2].contiguous()).unsqueeze(1).view(b, 1)
-      # read modes (b * 3*r)
-      read_modes = σ(ξ[:, r * w + 2 * r + 3 * w + 2: r * w + 5 * r + 3 * w + 2].contiguous().view(b, r, 3), 1)
 
     hidden = self.write(write_key, write_vector, erase_vector, free_gates,
                         read_strengths, write_strength, write_gate, allocation_gate, hidden)
-    return self.read(read_keys, read_strengths, read_modes, hidden)
+    return self.read(read_keys, hidden)
