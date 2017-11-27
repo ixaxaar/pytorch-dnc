@@ -87,9 +87,9 @@ def test_rnn_n():
   num_layers = 3
   num_hidden_layers = 5
   dropout = 0.2
-  nr_cells = 12
+  nr_cells = 20
   cell_size = 17
-  sparse_reads = 3
+  sparse_reads = 9
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -131,7 +131,7 @@ def test_rnn_n():
   assert target_output.size() == T.Size([27, 10, 100])
   assert chx[0][0].size() == T.Size([num_hidden_layers,10,100])
   # assert mhx['memory'].size() == T.Size([10,12,17])
-  assert rv.size() == T.Size([10, 51])
+  assert rv.size() == T.Size([10, 153])
 
 
 def test_rnn_no_memory_pass():
