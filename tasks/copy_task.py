@@ -22,12 +22,14 @@ import torch.optim as optim
 from torch.nn.utils import clip_grad_norm
 
 from dnc.dnc import DNC
+from dnc.sdnc import SDNC
 
 parser = argparse.ArgumentParser(description='PyTorch Differentiable Neural Computer')
 parser.add_argument('-input_size', type=int, default=6, help='dimension of input feature')
 parser.add_argument('-rnn_type', type=str, default='lstm', help='type of recurrent cells to use for the controller')
 parser.add_argument('-nhid', type=int, default=64, help='number of hidden units of the inner nn')
 parser.add_argument('-dropout', type=float, default=0, help='controller dropout')
+parser.add_argument('-memory_type', type=str, default='dense', help='dense or sparse memory')
 
 parser.add_argument('-nlayer', type=int, default=1, help='number of layers')
 parser.add_argument('-nhlayer', type=int, default=2, help='number of hidden layers')
@@ -109,21 +111,41 @@ if __name__ == '__main__':
   mem_size = args.mem_size
   read_heads = args.read_heads
 
-  rnn = DNC(
-      input_size=args.input_size,
-      hidden_size=args.nhid,
-      rnn_type=args.rnn_type,
-      num_layers=args.nlayer,
-      num_hidden_layers=args.nhlayer,
-      dropout=args.dropout,
-      nr_cells=mem_slot,
-      cell_size=mem_size,
-      read_heads=read_heads,
-      gpu_id=args.cuda,
-      debug=True,
-      batch_first=True,
-      independent_linears=True
-  )
+  if args.memory_type == 'dnc':
+    rnn = DNC(
+        input_size=args.input_size,
+        hidden_size=args.nhid,
+        rnn_type=args.rnn_type,
+        num_layers=args.nlayer,
+        num_hidden_layers=args.nhlayer,
+        dropout=args.dropout,
+        nr_cells=mem_slot,
+        cell_size=mem_size,
+        read_heads=read_heads,
+        gpu_id=args.cuda,
+        debug=True,
+        batch_first=True,
+        independent_linears=True
+    )
+  elif args.memory_type == 'sdnc':
+    rnn = SDNC(
+        input_size=args.input_size,
+        hidden_size=args.nhid,
+        rnn_type=args.rnn_type,
+        num_layers=args.nlayer,
+        num_hidden_layers=args.nhlayer,
+        dropout=args.dropout,
+        nr_cells=mem_slot,
+        cell_size=mem_size,
+        sparse_reads=read_heads,
+        gpu_id=args.cuda,
+        debug=False,
+        batch_first=True,
+        independent_linears=False
+    )
+  else:
+    raise Exception('Not recognized type of memory')
+
   print(rnn)
 
   if args.cuda != -1:
@@ -172,6 +194,10 @@ if __name__ == '__main__':
     take_checkpoint = (epoch != 0) and (epoch % check_freq == 0)
 
     last_save_losses.append(loss_value)
+
+    if summarize:
+      loss = np.mean(last_save_losses)
+      llprint("\n\tAvg. Logistic Loss: %.4f\n" % (loss))
 
     if summarize and rnn.debug:
       loss = np.mean(last_save_losses)
