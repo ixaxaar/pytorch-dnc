@@ -6,7 +6,7 @@ from torch.autograd import Variable as var
 import torch.nn.functional as F
 import numpy as np
 
-# from fiass import fiass
+# from flann import FLANN
 
 from .util import *
 import time
