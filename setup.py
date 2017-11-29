@@ -55,6 +55,9 @@ setup(
     keywords='differentiable neural computer dnc memory network',
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'tasks']),
+    package_data={
+        'libs': ['faiss/libfaiss.a', 'faiss/libgpufaiss.a', 'faiss/_swigfaiss_gpu.so', 'faiss/_swigfaiss.so'],
+    },
 
     install_requires=['torch', 'numpy'],
 

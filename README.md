@@ -1,8 +1,9 @@
-# Differentiable Neural Computer, for Pytorch
+# Differentiable Neural Computers and Sparse Differentiable Neural Computers, for Pytorch
 
 [![Build Status](https://travis-ci.org/ixaxaar/pytorch-dnc.svg?branch=master)](https://travis-ci.org/ixaxaar/pytorch-dnc) [![PyPI version](https://badge.fury.io/py/dnc.svg)](https://badge.fury.io/py/dnc)
 
 This is an implementation of [Differentiable Neural Computers](http://people.idsia.ch/~rupesh/rnnsymposium2016/slides/graves.pdf), described in the paper [Hybrid computing using a neural network with dynamic external memory, Graves et al.](https://www.nature.com/articles/nature20101)
+and the Sparse version of the DNC (the SDNC) described in [Scaling Memory-Augmented Neural Networks with Sparse Reads and Writes](http://papers.nips.cc/paper/6298-scaling-memory-augmented-neural-networks-with-sparse-reads-and-writes.pdf).
 
 ## Install
 
@@ -12,18 +13,62 @@ pip install dnc
 
 For using sparse DNCs, additional libraries are required:
 
-### FLANN
+### FAISS
+
+SDNCs require an additional library: [facebookresearch/faiss](https://github.com/facebookresearch/faiss).
+A compiled version of the library with intel SSE + CUDA 8 support ships with this library.
+If that does not work, one might need to manually compile faiss, as detailed below:
+
+#### Installing FAISS
+
+Needs `libopenblas.so` in `/usr/lib/`.
+
+This has been tested on Arch Linux. Other distributions might have different libopenblas path or cuda root dir or numpy include files dir.
 
 ```bash
-git clone https://github.com/mariusmuja/flann.git
-cd flann
-git checkout 1.9.1
-mkdir build
-cd build
-cmake -DBUILD_CUDA_LIB=ON -DCMAKE_C_COMPILER=/opt/cuda/bin/gcc -DCMAKE_CXX_COMPILER=/opt/cuda/bin/g++ ..
+git clone https://github.com/facebookresearch/faiss.git
+cd faiss
+cp ./example_makefiles/makefile.inc.Linux ./makefile.inc
+# change libopenblas path
+sed -i "s/lib64\/libopenblas\.so\.0/lib\/libopenblas\.so/g" ./makefile.inc
+# add option for nvcc to work properly with g++ > 5
+sed -i "s/std c++11 \-lineinfo/std c++11 \-lineinfo \-Xcompiler \-D__CORRECT_ISO_CPP11_MATH_H_PROTO/g" ./makefile.inc
+# change CUDA ROOT
+sed -i "s/CUDAROOT=\/usr\/local\/cuda-8.0\//CUDAROOT=\/opt\/cuda\//g" ./makefile.inc
+# change numpy include files (for v3.6)
+sed -i "s/PYTHONCFLAGS=\-I\/usr\/include\/python2.7\/ \-I\/usr\/lib64\/python2.7\/site\-packages\/numpy\/core\/include\//PYTHONCFLAGS=\-I\/usr\/include\/python3.6m\/ \-I\/usr\/lib\/python3.6\/site\-packages\/numpy\/core\/include/g"
+
+# build
 make
-sudo make install
+cd gpu
+make
+cd ..
+make py
+cd gpu
+make py
+cd ..
+
+mkdir /tmp/faiss
+find -name "*.so" -exec cp {} /tmp/faiss \;
+find -name "*.a" -exec cp {} /tmp/faiss \;
+find -name "*.py" -exec cp {} /tmp/faiss \;
+mv /tmp/faiss .
+cd faiss
+
+# convert to python3
+2to3 -w ./*.py
+rm -rf *.bak
+
+# Fix relative imports
+for i in *.py; do
+  filename=`echo $i | cut -d "." -f 1`
+  echo $filename
+  find -name "*.py" -exec sed -i "s/import $filename/import \.$filename/g" {} \;
+  find -name "*.py" -exec sed -i "s/from $filename import/from \.$filename import/g" {} \;
+done
 ```
+
+
 
 
 ## Architecure

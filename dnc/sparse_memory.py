@@ -6,10 +6,10 @@ from torch.autograd import Variable as var
 import torch.nn.functional as F
 import numpy as np
 
-from pyflann import FLANN
+# from fiass import fiass
 
 from .util import *
-
+import time
 
 class SparseMemory(nn.Module):
 
@@ -56,6 +56,7 @@ class SparseMemory(nn.Module):
 
   def rebuild_indexes(self, hidden, force=False):
     b = hidden['sparse'].shape[0]
+    t = time.time()
 
     # if self.rebuild_indexes_after == self.index_reset_ctr or 'indexes' not in hidden:
     # self.index_reset_ctr = 0
@@ -64,6 +65,7 @@ class SparseMemory(nn.Module):
         x.build_index(hidden['sparse'][n], algorithm='kdtree', trees=self.num_kdtrees, checks=self.index_checks)
         for n, x in enumerate(hidden['indexes'])
     ]
+    print(time.time()-t)
     # self.index_reset_ctr += 1
     return hidden
 
@@ -92,7 +94,7 @@ class SparseMemory(nn.Module):
       hidden['read_vectors'] = hidden['read_vectors'].clone()
 
       if erase:
-        hidden = self.rebuild_indexes(hidden)
+        # hidden = self.rebuild_indexes(hidden)
         hidden['sparse'].fill(0)
         # hidden['memory'].data.fill_(δ)
         hidden['read_weights'].data.fill_(δ)
@@ -162,6 +164,7 @@ class SparseMemory(nn.Module):
     return hidden['read_vectors'][:, :-1, :].contiguous(), hidden
 
   def forward(self, ξ, hidden):
+    t = time.time()
 
     # ξ = ξ.detach()
     m = self.mem_size
@@ -189,5 +192,6 @@ class SparseMemory(nn.Module):
       # write gate (b * 1)
       write_gate = F.sigmoid(ξ[:, -1].contiguous()).unsqueeze(1).view(b, 1)
 
+    print(time.time()-t, "-----------------")
     hidden = self.write(interpolation_gate, write_vector, write_gate, hidden)
     return self.read(read_query, hidden)
