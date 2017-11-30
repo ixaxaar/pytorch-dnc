@@ -91,6 +91,7 @@ class SDNC(nn.Module):
                 cell_size=self.w,
                 sparse_reads=self.r,
                 gpu_id=self.gpu_id,
+                mem_gpu_id=self.gpu_id,
                 independent_linears=self.independent_linears
             )
         )
@@ -105,6 +106,7 @@ class SDNC(nn.Module):
               cell_size=self.w,
               sparse_reads=self.r,
               gpu_id=self.gpu_id,
+              mem_gpu_id=self.gpu_id,
               independent_linears=self.independent_linears
           )
       )

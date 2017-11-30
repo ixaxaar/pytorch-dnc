@@ -23,6 +23,7 @@ from torch.nn.utils import clip_grad_norm
 
 from dnc.dnc import DNC
 from dnc.sdnc import SDNC
+from dnc.util import *
 
 parser = argparse.ArgumentParser(description='PyTorch Differentiable Neural Computer')
 parser.add_argument('-input_size', type=int, default=6, help='dimension of input feature')
@@ -38,7 +39,7 @@ parser.add_argument('-optim', type=str, default='adam', help='learning rule, sup
 parser.add_argument('-clip', type=float, default=50, help='gradient clipping')
 
 parser.add_argument('-batch_size', type=int, default=100, metavar='N', help='batch size')
-parser.add_argument('-mem_size', type=int, default=16, help='memory dimension')
+parser.add_argument('-mem_size', type=int, default=20, help='memory dimension')
 parser.add_argument('-mem_slot', type=int, default=16, help='number of memory slots')
 parser.add_argument('-read_heads', type=int, default=4, help='number of read heads')
 
@@ -147,6 +148,7 @@ if __name__ == '__main__':
     raise Exception('Not recognized type of memory')
 
   print(rnn)
+  # register_nan_checks(rnn)
 
   if args.cuda != -1:
     rnn = rnn.cuda(args.cuda)
@@ -182,6 +184,8 @@ if __name__ == '__main__':
     else:
       output, (chx, mhx, rv) = rnn(input_data, None, pass_through_memory=True)
 
+    # print(output)
+    # print("-----------------------------------------------------------------------------------------------------")
     loss = criterion((output), target_output)
 
     loss.backward()
@@ -198,6 +202,8 @@ if __name__ == '__main__':
     if summarize:
       loss = np.mean(last_save_losses)
       llprint("\n\tAvg. Logistic Loss: %.4f\n" % (loss))
+      if np.isnan(loss):
+        raise Exception('nan Loss')
 
     if summarize and rnn.debug:
       loss = np.mean(last_save_losses)

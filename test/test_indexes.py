@@ -44,11 +44,17 @@ def test_indexes():
       i.add(d * 2)
       i.add(d * 3)
 
-    i.add(d*7, (T.ones(n)*37).long())
+    dist, labels = i.search(q*7)
+
+    i.add(d*7, (T.Tensor([1,2,3])*37).long().cuda())
+    i.add(d*7, (T.Tensor([1,2,3])*19).long().cuda())
+    i.add(d*7, (T.Tensor([1,2,3])*17).long().cuda())
 
     dist, labels = i.search(q*7)
 
     assert dist.size() == T.Size([1,K])
     assert labels.size() == T.Size([1, K])
     assert 37 in list(labels[0].cpu().numpy())
+    assert 19 in list(labels[0].cpu().numpy())
+    assert 17 in list(labels[0].cpu().numpy())
 

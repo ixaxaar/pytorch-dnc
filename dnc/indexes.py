@@ -22,9 +22,10 @@ class Index(object):
     if self.gpu_id != -1:
       self.res.initializeForDevice(self.gpu_id)
 
-    train = train if train else T.randn(self.nr_cells, self.cell_size)
+    nr_samples = self.nr_cells * 100 * self.cell_size
+    train = train if train is not None else T.arange(-nr_samples, nr_samples, 2).view(self.nr_cells * 100, self.cell_size) / nr_samples
 
-    self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.nr_cells, faiss.METRIC_INNER_PRODUCT)
+    self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.K, faiss.METRIC_L2)
     self.index.setNumProbes(self.probes)
     self.train(train)
 
@@ -33,17 +34,21 @@ class Index(object):
 
   def train(self, train):
     train = ensure_gpu(train, -1)
+    T.cuda.synchronize()
     self.index.train_c(self.nr_cells, cast_float(ptr(train)))
+    T.cuda.synchronize()
 
   def add(self, other, positions=None):
     other = ensure_gpu(other, self.gpu_id)
 
+    T.cuda.synchronize()
     if positions is not None:
       positions = ensure_gpu(positions, self.gpu_id)
       assert positions.size(0) == other.size(0), "Mismatch in number of positions and vectors"
       self.index.add_with_ids_c(other.size(0), cast_float(ptr(other)), cast_long(ptr(positions)))
     else:
       self.index.add_c(other.size(0), cast_float(ptr(other)))
+    T.cuda.synchronize()
 
   def search(self, query, k=None):
     query = ensure_gpu(query, self.gpu_id)
@@ -54,9 +59,10 @@ class Index(object):
     distances = T.FloatTensor(b, k)
     labels = T.LongTensor(b, k)
 
-    if self.gpu_id != -1: distances.cuda(self.gpu_id)
-    if self.gpu_id != -1: labels.cuda(self.gpu_id)
+    if self.gpu_id != -1: distances = distances.cuda(self.gpu_id)
+    if self.gpu_id != -1: labels = labels.cuda(self.gpu_id)
 
+    T.cuda.synchronize()
     self.index.search_c(
       b,
       cast_float(ptr(query)),
@@ -64,4 +70,5 @@ class Index(object):
       cast_float(ptr(distances)),
       cast_long(ptr(labels))
     )
+    T.cuda.synchronize()
     return (distances, labels)
