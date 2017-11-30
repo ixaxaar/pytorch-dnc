@@ -143,7 +143,7 @@ def test_rnn_no_memory_pass():
   num_layers = 3
   num_hidden_layers = 5
   dropout = 0.2
-  nr_cells = 12
+  nr_cells = 5000
   cell_size = 17
   sparse_reads = 3
   gpu_id = -1

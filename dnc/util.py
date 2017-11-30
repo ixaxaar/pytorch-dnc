@@ -131,9 +131,14 @@ def check_nan_gradient(name=''):
   return f
 
 def ptr(tensor):
-  return tensor.storage().data_ptr()
+  if T.is_tensor(tensor):
+    return tensor.storage().data_ptr()
+  elif hasattr(tensor, 'data'):
+    return tensor.data.storage().data_ptr()
+  else:
+    return tensor
 
-
+# TODO: EWW change this shit
 def ensure_gpu(tensor, gpu_id):
   if "cuda" in str(type(tensor)) and gpu_id != -1:
     return tensor.cuda(gpu_id)
@@ -145,4 +150,6 @@ def ensure_gpu(tensor, gpu_id):
     return tensor
   elif type(tensor) is np.ndarray:
     return cudavec(tensor, gpu_id=gpu_id).data
+  else:
+    return tensor
 
