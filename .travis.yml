@@ -4,8 +4,10 @@ python:
 # command to install dependencies
 before_install:
   - sudo apt-get -qq update
+  - sudo apt-get install software-properties-common
   - sudo apt-get install libopenblas-dev
   - sudo ln -s /usr/lib/libopenblas.so /usr/lib/libopenblas.so.3
+  - sudo apt-get install --no-install-recommends nvidia-cuda-dev nvidia-cuda-toolkit
 install:
   - pip install http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl
   - pip install numpy

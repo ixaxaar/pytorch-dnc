@@ -67,6 +67,8 @@ for i in *.py; do
   find -name "*.py" -exec sed -i "s/from $filename import/from \.$filename import/g" {} \;
 done
 
+cd ..
+
 git clone https://github.com/ixaxaar/pytorch-dnc
 mv faiss pytorch-dnc
 cd pytorch-dnc
