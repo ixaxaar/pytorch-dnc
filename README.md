@@ -118,9 +118,9 @@ The copy task, as descibed in the original paper, is included in the repo.
 
 From the project root:
 ```bash
-python ./tasks/copy_task.py -cuda 0 -optim rmsprop -batch_size 32 -mem_slot 64 # (original implementation)
+python ./tasks/copy_task.py -cuda 0 -optim rmsprop -batch_size 32 -mem_slot 64 # (like original implementation)
 
-python ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -nlayer 1 -nhlayer 2 -mem_slot 32 -batch_size 32 -optim adam # (faster convergence)
+python3 ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 32 -batch_size 1000 -optim adam -sequence_max_length 8 # (faster convergence)
 ```
 
 For the full set of options, see:
@@ -150,7 +150,9 @@ The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_fre
 
 ## General noteworthy stuff
 
-1. DNCs converge with Adam and RMSProp learning rules, SGD generally causes them to diverge.
+1. DNCs converge faster with Adam and RMSProp learning rules, SGD generally converges extremely slowly.
+The copy task, for example, takes 25k iterations on SGD with lr 1 compared to 3.5k for adam with lr 0.01.
+2. `nan`s in the gradients are common, try with different batch sizes
 
 Repos referred to for creation of this repo:
 

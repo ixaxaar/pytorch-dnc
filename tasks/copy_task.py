@@ -37,8 +37,8 @@ parser.add_argument('-clip', type=float, default=50, help='gradient clipping')
 
 parser.add_argument('-batch_size', type=int, default=100, metavar='N', help='batch size')
 parser.add_argument('-mem_size', type=int, default=16, help='memory dimension')
-parser.add_argument('-mem_slot', type=int, default=10, help='number of memory slots')
-parser.add_argument('-read_heads', type=int, default=1, help='number of read heads')
+parser.add_argument('-mem_slot', type=int, default=16, help='number of memory slots')
+parser.add_argument('-read_heads', type=int, default=4, help='number of read heads')
 
 parser.add_argument('-sequence_max_length', type=int, default=4, metavar='N', help='sequence_max_length')
 parser.add_argument('-cuda', type=int, default=-1, help='Cuda GPU ID, -1 for CPU')
@@ -121,7 +121,8 @@ if __name__ == '__main__':
       read_heads=read_heads,
       gpu_id=args.cuda,
       debug=True,
-      batch_first=True
+      batch_first=True,
+      independent_linears=True
   )
   print(rnn)
 
@@ -131,9 +132,20 @@ if __name__ == '__main__':
   last_save_losses = []
 
   if args.optim == 'adam':
-    optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
+    optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
+  if args.optim == 'sparseadam':
+    optimizer = optim.SparseAdam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
+  if args.optim == 'adamax':
+    optimizer = optim.Adamax(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
   elif args.optim == 'rmsprop':
-    optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10)
+    optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10) # 0.0001
+  elif args.optim == 'sgd':
+    optimizer = optim.SGD(rnn.parameters(), lr=args.lr) # 0.01
+  elif args.optim == 'adagrad':
+    optimizer = optim.Adagrad(rnn.parameters(), lr=args.lr)
+  elif args.optim == 'adadelta':
+    optimizer = optim.Adadelta(rnn.parameters(), lr=args.lr)
+
 
   for epoch in range(iterations + 1):
     llprint("\rIteration {ep}/{tot}".format(ep=epoch, tot=iterations))
@@ -183,13 +195,13 @@ if __name__ == '__main__':
       )
 
       viz.heatmap(
-          v['link_matrix'],
+          v['link_matrix'][-1].reshape(args.mem_slot, args.mem_slot),
           opts=dict(
               xtickstep=10,
               ytickstep=2,
               title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
-              ylabel='layer * time',
-              xlabel='mem_slot * mem_slot'
+              ylabel='mem_slot',
+              xlabel='mem_slot'
           )
       )
 
