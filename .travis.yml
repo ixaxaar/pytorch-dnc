@@ -8,9 +8,9 @@ before_install:
   - sudo apt-get install -yqq libopenblas-dev liblapack3 python3-numpy python3-dev swig
   - sudo ln -s /usr/lib/libopenblas.so /usr/lib/libopenblas.so.3
 install:
-  - pip install http://download.pytorch.org/whl/cu80/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl
-  - pip install numpy
-  - pip install visdom
+  - pip install -qqq http://download.pytorch.org/whl/cu80/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl
+  - pip install -qqq numpy
+  - pip install -qqq visdom
 # command to run tests
 script:
   - pytest ./test
