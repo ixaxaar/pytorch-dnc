@@ -17,6 +17,6 @@ install:
   - pip install visdom
 # command to run tests
 script:
-  - cp /usr/local/lib/python3.6/dist-packages/torch/lib/libgomp-ae56ecdc.so.1.0.0 /usr/lib/libgomp.so.1
+  - cp /usr/lib/python3.6/dist-packages/torch/lib/libgomp-ae56ecdc.so.1.0.0 /usr/lib/libgomp.so.1
   - pip install -e .
   - pytest ./test
