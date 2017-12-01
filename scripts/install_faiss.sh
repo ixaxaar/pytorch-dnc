@@ -27,10 +27,12 @@ install_openblas() {
 
 # pre-requisites
 if [[ -r /usr/bin/pacman ]]; then
-  pacman -S --noconfirm git  wget
+  pacman -Syy
+  pacman -S --noconfirm git  wget python-pip
 
 elif [[ -r /usr/bin/apt-get ]]; then
-  apt-get install -y git wget  python3-examples
+  apt-get update
+  apt-get install -y git wget  python3-examples python3-pip
 
 elif [[ -r /usr/bin/yum ]]; then
   # cause install-deps supports only fedora v21 and v22
@@ -39,7 +41,7 @@ elif [[ -r /usr/bin/yum ]]; then
                   nodejs npm libjpeg-turbo-devel libpng-devel \
                   ImageMagick GraphicsMagick-devel fftw-devel \
                   sox-devel sox qt-devel qtwebkit-devel \
-                  python-ipython czmq czmq-devel python3-tools
+                  python-ipython czmq czmq-devel python3-tools findutils which
 
   install_openblas
 
