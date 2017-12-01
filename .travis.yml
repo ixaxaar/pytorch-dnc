@@ -6,6 +6,8 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install software-properties-common
   - sudo apt-get install libopenblas-dev
+  - sudo apt-get install libgomp1
+  - sudo apt-get install swig
   - sudo ln -s /usr/lib/libopenblas.so /usr/lib/libopenblas.so.3
   - wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda-repo-ubuntu1604-8-0-local-ga2_8.0.61-1_amd64-deb -O /tmp/cuda.deb
   - sudo dpkg -i /tmp/cuda.deb
