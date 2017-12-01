@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 from faiss import faiss
 
@@ -19,7 +19,7 @@ class Index(object):
     self.K = K
     self.gpu_id = gpu_id
     self.res = res if res else faiss.StandardGpuResources()
-    self.res.setTempMemoryFraction(0.001)
+    self.res.setTempMemoryFraction(0.01)
     if self.gpu_id != -1:
       self.res.initializeForDevice(self.gpu_id)
 
