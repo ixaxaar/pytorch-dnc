@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 import pytest
 import numpy as np
@@ -36,7 +36,7 @@ def test_indexes():
   d = T.ones(n, cell_size)
   q = T.ones(1, cell_size)
 
-  for gpu_id in (0, -1):
+  for gpu_id in (-1, -1):
     i = Index(cell_size=cell_size, nr_cells=nr_cells, K=K, probes=probes, gpu_id=gpu_id)
     d = d if gpu_id == -1 else d.cuda(gpu_id)
 
