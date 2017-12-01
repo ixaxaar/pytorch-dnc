@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 import torch.nn as nn
 import torch as T
@@ -11,7 +11,7 @@ from torch.nn.utils.rnn import pack_padded_sequence as pack
 from torch.nn.utils.rnn import PackedSequence
 
 from .util import *
-from .sparse_memory import *
+from .sparse_memory import SparseMemory
 
 
 class SDNC(nn.Module):

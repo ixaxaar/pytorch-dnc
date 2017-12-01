@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 """A setuptools based setup module.
 See:
@@ -55,7 +55,7 @@ setup(
 
     keywords='differentiable neural computer dnc memory network',
 
-    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'tasks']),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'tasks', 'scripts']),
     package_data={
         'libs': ['faiss/libfaiss.a', 'faiss/libgpufaiss.a', 'faiss/_swigfaiss_gpu.so', 'faiss/_swigfaiss.so'],
     },
