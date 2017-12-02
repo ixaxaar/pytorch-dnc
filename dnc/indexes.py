@@ -39,6 +39,11 @@ class Index(object):
     self.index.train_c(self.nr_cells, cast_float(ptr(train)))
     T.cuda.synchronize()
 
+  def reset(self):
+    T.cuda.synchronize()
+    self.index.reset()
+    T.cuda.synchronize()
+
   def add(self, other, positions=None):
     other = ensure_gpu(other, self.gpu_id)
 

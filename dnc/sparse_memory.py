@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 import torch.nn as nn
 import torch as T
@@ -56,24 +56,25 @@ class SparseMemory(nn.Module):
 
     self.I = cuda(1 - T.eye(m).unsqueeze(0), gpu_id=self.gpu_id)  # (1 * n * n)
 
-  def rebuild_indexes(self, hidden):
+  def rebuild_indexes(self, hidden, erase=False):
     b = hidden['memory'].size(0)
     t = time.time()
 
-    # if self.rebuild_indexes_after == self.index_reset_ctr or 'indexes' not in hidden:
-    # self.index_reset_ctr = 0
-    # create new indexes
-    hidden['indexes'] = \
-      [Index(cell_size=self.cell_size,
-        nr_cells=self.mem_size, K=self.K,
-        probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
+    # if indexes already exist, we reset them
+    if 'indexes' in hidden:
+      [ x.reset() for x in hidden['indexes'] ]
+    else:
+      # create new indexes
+      hidden['indexes'] = \
+        [Index(cell_size=self.cell_size,
+          nr_cells=self.mem_size, K=self.K,
+          probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
 
-    # add existing memory into indexes, not required if starting from scratch
-    # for n,i in enumerate(hidden['indexes']):
-    #   i.add(hidden['memory'][n])
+    # add existing memory into indexes
+    if not erase:
+      for n,i in enumerate(hidden['indexes']):
+        i.add(hidden['memory'][n])
 
-    # print(time.time()-t)
-    # self.index_reset_ctr += 1
     return hidden
 
   def reset(self, batch_size=1, hidden=None, erase=True):
@@ -100,9 +101,10 @@ class SparseMemory(nn.Module):
       hidden['write_weights'] = hidden['write_weights'].clone()
       hidden['read_vectors'] = hidden['read_vectors'].clone()
       hidden['last_used_mem'] = hidden['last_used_mem'].clone()
+      hidden = self.rebuild_indexes(hidden)
 
       if erase:
-        hidden = self.rebuild_indexes(hidden)
+        hidden = self.rebuild_indexes(hidden, erase)
         hidden['memory'].data.fill_(δ)
         hidden['read_weights'].data.fill_(δ)
         hidden['write_weights'].data.fill_(δ)
