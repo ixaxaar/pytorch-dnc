@@ -125,12 +125,13 @@ class SparseMemory(nn.Module):
     read_vectors = hidden['read_vectors']
     positions = hidden['read_positions'].squeeze()
 
+    (b, m, w) = hidden['memory'].size()
+    # update memory
+    hidden['memory'].scatter_(1, positions.unsqueeze(2).expand(b, self.K+1, w), read_vectors)
+
+    # non-differentiable operations
     pos = positions.data.cpu().numpy()
     for b in range(positions.size(0)):
-      # update sparse memory
-      for i, p in enumerate(list(pos[b])):
-        hidden['memory'][b, p] = read_vectors[b, i]
-
       # update indexes
       hidden['indexes'][b].add(read_vectors[b], positions[b])
       hidden['last_used_mem'][b] = (int(pos[b][-1]) + 1) if (pos[b][-1] + 1) < self.mem_size else 0
@@ -162,7 +163,7 @@ class SparseMemory(nn.Module):
     u = (read_weights + write_weights > self.δ).float()
 
     # usage before write
-    relevant_usages = T.stack([usage[b][p.data] for b, p in enumerate(read_positions)], 0)
+    relevant_usages = usage.gather(1, read_positions)
 
     # indicator of words with minimal memory usage
     minusage = T.min(relevant_usages, -1)[0].unsqueeze(1)
@@ -172,9 +173,7 @@ class SparseMemory(nn.Module):
     # usage after write
     relevant_usages = (self.timestep - relevant_usages) * u.squeeze() + relevant_usages * (1 - u.squeeze())
 
-    for b, p in enumerate(read_positions):
-      for n, x in enumerate(list(p.data.cpu().numpy())):
-        usage[b, x] = relevant_usages[b, n]
+    usage.scatter_(1, read_positions, relevant_usages)
 
     return usage, I
 
@@ -183,6 +182,7 @@ class SparseMemory(nn.Module):
     read_positions = []
     read_weights = []
 
+    # non-differentiable operations
     for batch in range(b):
       distances, positions = indexes[batch].search(keys[batch])
       distances = F.softmax(distances)
@@ -201,13 +201,8 @@ class SparseMemory(nn.Module):
     read_positions = var(read_positions)
     read_positions = T.cat([read_positions, last_used_mem.unsqueeze(1)], 2)
 
-    # read the kmeans closest and the least used memory
-    # TODO: for now we assume infinite memory, hence least used is the first free cell
-    read_vectors = []
-    pos = read_positions.squeeze().data.cpu().numpy()
-    for b in range(read_positions.size(0)):
-      read_vectors.append(T.stack([memory[b, p] for p in list(pos[b])], 0))
-    read_vectors = T.stack(read_vectors, 0)
+    (b, m, w) = memory.size()
+    read_vectors = memory.gather(1, read_positions.squeeze().unsqueeze(2).expand(b, self.K+1, w))
 
     return read_vectors, read_positions, read_weights
 
