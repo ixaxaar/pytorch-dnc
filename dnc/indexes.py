@@ -26,7 +26,7 @@ class Index(object):
     nr_samples = self.nr_cells * 100 * self.cell_size
     train = train if train is not None else T.arange(-nr_samples, nr_samples, 2).view(self.nr_cells * 100, self.cell_size) / nr_samples
 
-    self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.K, faiss.METRIC_L2)
+    self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.K, faiss.METRIC_INNER_PRODUCT)
     self.index.setNumProbes(self.probes)
     self.train(train)
 
