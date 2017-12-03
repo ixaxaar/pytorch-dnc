@@ -11,6 +11,7 @@ from .indexes import Index
 from .util import *
 import time
 
+
 class SparseMemory(nn.Module):
 
   def __init__(
@@ -55,6 +56,8 @@ class SparseMemory(nn.Module):
       self.interface_weights = nn.Linear(self.input_size, self.interface_size)
 
     self.I = cuda(1 - T.eye(m).unsqueeze(0), gpu_id=self.gpu_id)  # (1 * n * n)
+    self.δ = 0.005  # minimum usage
+    self.timestep = 0
 
   def rebuild_indexes(self, hidden, erase=False):
     b = hidden['memory'].size(0)
@@ -62,18 +65,20 @@ class SparseMemory(nn.Module):
 
     # if indexes already exist, we reset them
     if 'indexes' in hidden:
-      [ x.reset() for x in hidden['indexes'] ]
+      [x.reset() for x in hidden['indexes']]
     else:
       # create new indexes
       hidden['indexes'] = \
-        [Index(cell_size=self.cell_size,
-          nr_cells=self.mem_size, K=self.K,
-          probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
+          [Index(cell_size=self.cell_size,
+                 nr_cells=self.mem_size, K=self.K,
+                 probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
 
     # add existing memory into indexes
     if not erase:
-      for n,i in enumerate(hidden['indexes']):
-        i.add(hidden['memory'][n])
+      for n, i in enumerate(hidden['indexes']):
+        i.add(hidden['memory'][n, :self.timestep, :])
+    else:
+      self.timestep = 0
 
     return hidden
 
@@ -88,19 +93,21 @@ class SparseMemory(nn.Module):
           # warning can be a huge chunk of contiguous memory
           'memory': cuda(T.zeros(b, m, w).fill_(δ), gpu_id=self.mem_gpu_id),
           'read_weights': cuda(T.zeros(b, 1, r).fill_(δ), gpu_id=self.gpu_id),
-          'write_weights': cuda(T.zeros(b, 1, m).fill_(δ), gpu_id=self.gpu_id),
+          'write_weights': cuda(T.zeros(b, 1, r).fill_(δ), gpu_id=self.gpu_id),
           'read_vectors': cuda(T.zeros(b, r, w).fill_(δ), gpu_id=self.gpu_id),
-          'last_used_mem': cuda(T.zeros(b, 1), gpu_id=self.gpu_id).long()
-          # 'read_positions': np.zeros((b, 1, r)).tolist()
+          'last_used_mem': cuda(T.zeros(b, 1), gpu_id=self.gpu_id).long(),
+          'usage': cuda(T.zeros(b, m), gpu_id=self.gpu_id),
+          'read_positions': cuda(T.zeros(b, 1, r).fill_(0), gpu_id=self.gpu_id).long()
       }
-      # Build FLANN randomized k-d tree indexes for each batch
-      hidden = self.rebuild_indexes(hidden)
+      hidden = self.rebuild_indexes(hidden, erase=True)
     else:
       hidden['memory'] = hidden['memory'].clone()
       hidden['read_weights'] = hidden['read_weights'].clone()
       hidden['write_weights'] = hidden['write_weights'].clone()
       hidden['read_vectors'] = hidden['read_vectors'].clone()
       hidden['last_used_mem'] = hidden['last_used_mem'].clone()
+      hidden['usage'] = hidden['usage'].clone()
+      hidden['read_positions'] = hidden['read_positions'].clone()
       hidden = self.rebuild_indexes(hidden)
 
       if erase:
@@ -110,6 +117,8 @@ class SparseMemory(nn.Module):
         hidden['write_weights'].data.fill_(δ)
         hidden['read_vectors'].data.fill_(δ)
         hidden['last_used_mem'].data.fill_(0)
+        hidden['usage'].data.fill_(0)
+        hidden['read_positions'].data.fill_(0)
     return hidden
 
   def write_into_sparse_memory(self, hidden):
@@ -130,17 +139,44 @@ class SparseMemory(nn.Module):
 
   def write(self, interpolation_gate, write_vector, write_gate, hidden):
 
+    hidden['usage'], I = self.update_usage(
+        hidden['read_positions'],
+        hidden['read_weights'],
+        hidden['write_weights'],
+        hidden['usage']
+    )
+
     x = interpolation_gate * hidden['read_weights']
-    y = (1 - interpolation_gate) * cuda(T.ones(hidden['read_weights'].size()), gpu_id=self.gpu_id)
-    write_weights = write_gate.unsqueeze(1) * (x + y)
+    y = (1 - interpolation_gate) * I
+    hidden['write_weights'] = write_gate.unsqueeze(1) * (x + y)
 
     # no erasing and hence no erase matrix R_{t}
-    hidden['read_vectors'] = hidden['read_vectors'] + T.bmm(write_weights.transpose(1, 2), write_vector)
-
-    if 'read_positions' in hidden:
-      hidden = self.write_into_sparse_memory(hidden)
+    hidden['read_vectors'] = hidden['read_vectors'] + T.bmm(hidden['write_weights'].transpose(1, 2), write_vector)
+    hidden = self.write_into_sparse_memory(hidden)
 
     return hidden
+
+  def update_usage(self, read_positions, read_weights, write_weights, usage):
+    read_positions = read_positions.squeeze()
+    # usage is timesteps since a non-negligible memory access
+    u = (read_weights + write_weights > self.δ).float()
+
+    # usage before write
+    relevant_usages = T.stack([usage[b][p.data] for b, p in enumerate(read_positions)], 0)
+
+    # indicator of words with minimal memory usage
+    minusage = T.min(relevant_usages, -1)[0].unsqueeze(1)
+    minusage = minusage.expand(relevant_usages.size())
+    I = (relevant_usages == minusage).float().unsqueeze(1)
+
+    # usage after write
+    relevant_usages = (self.timestep - relevant_usages) * u.squeeze() + relevant_usages * (1 - u.squeeze())
+
+    for b, p in enumerate(read_positions):
+      for n, x in enumerate(list(p.data.cpu().numpy())):
+        usage[b, x] = relevant_usages[b, n]
+
+    return usage, I
 
   def read_from_sparse_memory(self, memory, indexes, keys, last_used_mem):
     b = keys.size(0)
@@ -152,7 +188,7 @@ class SparseMemory(nn.Module):
       distances = F.softmax(distances)
 
       read_weights.append(distances)
-      read_positions.append(T.clamp(positions, 0, self.mem_size-1))
+      read_positions.append(T.clamp(positions, 0, self.mem_size - 1))
 
     # add weight of 0 for least used mem block
     read_weights = T.stack(read_weights, 0)
@@ -170,7 +206,7 @@ class SparseMemory(nn.Module):
     read_vectors = []
     pos = read_positions.squeeze().data.cpu().numpy()
     for b in range(read_positions.size(0)):
-      read_vectors.append( T.stack([ memory[b, p] for p in list(pos[b]) ], 0) )
+      read_vectors.append(T.stack([memory[b, p] for p in list(pos[b])], 0))
     read_vectors = T.stack(read_vectors, 0)
 
     return read_vectors, read_positions, read_weights
@@ -214,6 +250,6 @@ class SparseMemory(nn.Module):
       # write gate (b * 1)
       write_gate = F.sigmoid(ξ[:, -1].contiguous()).unsqueeze(1).view(b, 1)
 
-    # print(time.time()-t, "-----------------")
+    self.timestep += 1
     hidden = self.write(interpolation_gate, write_vector, write_gate, hidden)
     return self.read(read_query, hidden)
