@@ -132,9 +132,11 @@ class SparseMemory(nn.Module):
     pos = positions.data.cpu().numpy()
     for b in range(positions.size(0)):
       # update indexes
-      hidden['indexes'][b].add(read_vectors[b], positions[b])
+      hidden['indexes'][b].reset()
+      hidden['indexes'][b].add(hidden['memory'][b])
       hidden['last_used_mem'][b] = (int(pos[b][-1]) + 1) if (pos[b][-1] + 1) < self.mem_size else 0
 
+    # print('total ', hidden['indexes'][0].index.ntotal, self.timestep)
     return hidden
 
   def write(self, interpolation_gate, write_vector, write_gate, hidden):
@@ -181,6 +183,7 @@ class SparseMemory(nn.Module):
     read_positions = []
     read_weights = []
 
+    # print(keys.squeeze())
     # non-differentiable operations
     for batch in range(b):
       distances, positions = indexes[batch].search(keys[batch])
@@ -197,6 +200,7 @@ class SparseMemory(nn.Module):
 
     read_positions = var(read_positions)
     read_positions = T.cat([read_positions, last_used_mem.unsqueeze(1)], 2)
+    # print(read_positions.squeeze())
 
     # add weight of 0 for least used mem block
     read_weights = T.stack(read_weights, 0)
