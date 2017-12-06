@@ -6,6 +6,7 @@ import torch as T
 from torch.autograd import Variable as var
 import torch.nn.functional as F
 import numpy as np
+import math
 
 from .indexes import Index
 from .util import *
@@ -21,7 +22,7 @@ class SparseMemory(nn.Module):
       cell_size=32,
       independent_linears=True,
       sparse_reads=4,
-      num_kdtrees=4,
+      num_lists=None,
       index_checks=32,
       rebuild_indexes_after=10,
       gpu_id=-1,
@@ -36,7 +37,7 @@ class SparseMemory(nn.Module):
     self.input_size = input_size
     self.independent_linears = independent_linears
     self.K = sparse_reads if self.mem_size > sparse_reads else self.mem_size
-    self.num_kdtrees = num_kdtrees
+    self.num_lists = num_lists if num_lists is not None else int(self.mem_size / 100)
     self.index_checks = index_checks
     # self.rebuild_indexes_after = rebuild_indexes_after
 
@@ -69,7 +70,7 @@ class SparseMemory(nn.Module):
       # create new indexes
       hidden['indexes'] = \
           [Index(cell_size=self.cell_size,
-                 nr_cells=self.mem_size, K=self.K,
+                 nr_cells=self.mem_size, K=self.K, num_lists=self.num_lists,
                  probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
 
     # add existing memory into indexes
@@ -94,9 +95,9 @@ class SparseMemory(nn.Module):
           'read_weights': cuda(T.zeros(b, 1, r).fill_(δ), gpu_id=self.gpu_id),
           'write_weights': cuda(T.zeros(b, 1, r).fill_(δ), gpu_id=self.gpu_id),
           'read_vectors': cuda(T.zeros(b, r, w).fill_(δ), gpu_id=self.gpu_id),
-          'last_used_mem': cuda(T.zeros(b, 1), gpu_id=self.gpu_id).long(),
-          'usage': cuda(T.zeros(b, m), gpu_id=self.gpu_id),
-          'read_positions': cuda(T.zeros(b, 1, r).fill_(0), gpu_id=self.gpu_id).long()
+          'last_used_mem': cuda(T.zeros(b, 1).fill_(δ), gpu_id=self.gpu_id).long(),
+          'usage': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
+          'read_positions': cuda(T.arange(0, r).expand(b, 1, r), gpu_id=self.gpu_id).long()
       }
       hidden = self.rebuild_indexes(hidden, erase=True)
     else:
@@ -115,8 +116,8 @@ class SparseMemory(nn.Module):
         hidden['write_weights'].data.fill_(δ)
         hidden['read_vectors'].data.fill_(δ)
         hidden['last_used_mem'].data.fill_(0)
-        hidden['usage'].data.fill_(0)
-        hidden['read_positions'].data.fill_(0)
+        hidden['usage'].data.fill_(δ)
+        hidden['read_positions'] = cuda(T.arange(0, r).expand(b, 1, r), gpu_id=self.gpu_id).long()
     return hidden
 
   def write_into_sparse_memory(self, hidden):
@@ -175,7 +176,7 @@ class SparseMemory(nn.Module):
 
     return usage, I
 
-  def read_from_sparse_memory(self, memory, indexes, keys, last_used_mem):
+  def read_from_sparse_memory(self, memory, indexes, keys, last_used_mem, usage):
     b = keys.size(0)
     read_positions = []
     read_weights = []
@@ -186,17 +187,26 @@ class SparseMemory(nn.Module):
       read_weights.append(distances)
       read_positions.append(T.clamp(positions, 0, self.mem_size - 1))
 
+    # add least used mem to read positions
+    read_positions = T.stack(read_positions, 0)
+
+    # TODO: explore possibility of reading co-locations and such
+    # if read_collocations:
+      # read the previous and the next memory locations
+      # read_positions = T.cat([read_positions, read_positions-1, read_positions+1], -1)
+
+    read_positions = var(read_positions)
+    read_positions = T.cat([read_positions, last_used_mem.unsqueeze(1)], 2)
+
     # add weight of 0 for least used mem block
     read_weights = T.stack(read_weights, 0)
     new_block = read_weights.new(b, 1, 1)
-    new_block.fill_(0)
+    new_block.fill_(δ)
     read_weights = T.cat([read_weights, new_block], 2)
-    read_weights = F.softmax(var(read_weights))
-
-    # add least used mem to read positions
-    read_positions = T.stack(read_positions, 0)
-    read_positions = var(read_positions)
-    read_positions = T.cat([read_positions, last_used_mem.unsqueeze(1)], 2)
+    read_weights = var(read_weights)
+    # condition read weights by their usages
+    relevant_usages = usage.gather(1, read_positions.squeeze())
+    read_weights = (read_weights.squeeze(1) * relevant_usages).unsqueeze(1)
 
     (b, m, w) = memory.size()
     read_vectors = memory.gather(1, read_positions.squeeze().unsqueeze(2).expand(b, self.K+1, w))
@@ -206,7 +216,13 @@ class SparseMemory(nn.Module):
   def read(self, read_query, hidden):
     # sparse read
     read_vectors, positions, read_weights = \
-        self.read_from_sparse_memory(hidden['memory'], hidden['indexes'], read_query, hidden['last_used_mem'])
+        self.read_from_sparse_memory(
+          hidden['memory'],
+          hidden['indexes'],
+          read_query,
+          hidden['last_used_mem'],
+          hidden['usage']
+        )
     hidden['read_positions'] = positions
     hidden['read_weights'] = read_weights
     hidden['read_vectors'] = read_vectors

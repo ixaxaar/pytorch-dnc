@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 import torch.nn as nn
 import torch as T
@@ -99,7 +99,7 @@ def σ(input, axis=1):
 def register_nan_checks(model):
   def check_grad(module, grad_input, grad_output):
     # print(module) you can add this to see that the hook is called
-    print('hook called for ' + str(type(module)))
+    # print('hook called for ' + str(type(module)))
     if any(np.all(np.isnan(gi.data.cpu().numpy())) for gi in grad_input if gi is not None):
       print('NaN gradient in grad_input ' + type(module).__name__)
 

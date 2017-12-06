@@ -17,66 +17,12 @@ For using sparse DNCs, additional libraries are required:
 
 SDNCs require an additional library: [facebookresearch/faiss](https://github.com/facebookresearch/faiss).
 A compiled version of the library with intel SSE + CUDA 8 support ships with this library.
-If that does not work, one might need to manually compile faiss, as detailed below:
+If that does not work, one might need to install from source, as detailed below:
 
-#### Installing FAISS
+#### Installing from source
 
-Needs `libopenblas.so` in `/usr/lib/`.
-
-This has been tested on Arch Linux. Other distributions might have different libopenblas path or cuda root dir or numpy include files dir.
-
-```bash
-git clone https://github.com/facebookresearch/faiss.git
-cd faiss
-cp ./example_makefiles/makefile.inc.Linux ./makefile.inc
-# change libopenblas path
-sed -i "s/lib64\/libopenblas\.so\.0/lib\/libopenblas\.so/g" ./makefile.inc
-# add option for nvcc to work properly with g++ > 5
-sed -i "s/std c++11 \-lineinfo/std c++11 \-lineinfo \-Xcompiler \-D__CORRECT_ISO_CPP11_MATH_H_PROTO/g" ./makefile.inc
-# change CUDA ROOT
-sed -i "s/CUDAROOT=\/usr\/local\/cuda-8.0\//CUDAROOT=\/opt\/cuda\//g" ./makefile.inc
-# change numpy include files (for v3.6)
-sed -i "s/PYTHONCFLAGS=\-I\/usr\/include\/python2.7\/ \-I\/usr\/lib64\/python2.7\/site\-packages\/numpy\/core\/include\//PYTHONCFLAGS=\-I\/usr\/include\/python3.6m\/ \-I\/usr\/lib\/python3.6\/site\-packages\/numpy\/core\/include/g"
-
-# build
-make
-cd gpu
-make
-cd ..
-make py
-cd gpu
-make py
-cd ..
-
-mkdir /tmp/faiss
-find -name "*.so" -exec cp {} /tmp/faiss \;
-find -name "*.a" -exec cp {} /tmp/faiss \;
-find -name "*.py" -exec cp {} /tmp/faiss \;
-mv /tmp/faiss .
-cd faiss
-
-# convert to python3
-2to3 -w ./*.py
-rm -rf *.bak
-
-# Fix relative imports
-for i in *.py; do
-  filename=`echo $i | cut -d "." -f 1`
-  echo $filename
-  find -name "*.py" -exec sed -i "s/import $filename/import \.$filename/g" {} \;
-  find -name "*.py" -exec sed -i "s/from $filename import/from \.$filename import/g" {} \;
-done
-
-cd ..
-
-git clone https://github.com/ixaxaar/pytorch-dnc
-mv faiss pytorch-dnc
-cd pytorch-dnc
-sudo pip install -e .
-```
-
-
-
+A script for building and installing this lib from source can be found at [scripts/install.sh](./scripts/install.sh).
+Tested on `ubuntu 16.04`, `Arch / Manjaro` and `Fedora 27`.
 
 ## Architecure
 
@@ -113,8 +59,8 @@ Following are the forward pass parameters:
 | --- | --- | --- |
 | input | - | The input vector `(B*T*X)` or `(T*B*X)` |
 | hidden | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
-| reset_experience | `False` | Whether to reset memory (This is a parameter for the forward pass |
-| pass_through_memory | `True` | Whether to pass through memory (This is a parameter for the forward pass |
+| reset_experience | `False` | Whether to reset memory |
+| pass_through_memory | `True` | Whether to pass through memory |
 
 
 ### Example usage:
