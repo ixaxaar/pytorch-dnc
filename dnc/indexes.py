@@ -46,7 +46,7 @@ class Index(object):
     self.index.reset()
     T.cuda.synchronize()
 
-  def add(self, other, positions=None):
+  def add(self, other, positions=None, last=-1):
     other = ensure_gpu(other, self.gpu_id)
 
     T.cuda.synchronize()
@@ -55,6 +55,7 @@ class Index(object):
       assert positions.size(0) == other.size(0), "Mismatch in number of positions and vectors"
       self.index.add_with_ids_c(other.size(0), cast_float(ptr(other)), cast_long(ptr(positions + 1)))
     else:
+      other = other[:last, :]
       self.index.add_c(other.size(0), cast_float(ptr(other)))
     T.cuda.synchronize()
 
