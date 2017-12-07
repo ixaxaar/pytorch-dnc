@@ -43,6 +43,7 @@ parser.add_argument('-batch_size', type=int, default=100, metavar='N', help='bat
 parser.add_argument('-mem_size', type=int, default=20, help='memory dimension')
 parser.add_argument('-mem_slot', type=int, default=16, help='number of memory slots')
 parser.add_argument('-read_heads', type=int, default=4, help='number of read heads')
+parser.add_argument('-sparse_reads', type=int, default=10, help='number of sparse reads per read head')
 
 parser.add_argument('-sequence_max_length', type=int, default=4, metavar='N', help='sequence_max_length')
 parser.add_argument('-cuda', type=int, default=-1, help='Cuda GPU ID, -1 for CPU')
@@ -139,7 +140,8 @@ if __name__ == '__main__':
         dropout=args.dropout,
         nr_cells=mem_slot,
         cell_size=mem_size,
-        sparse_reads=read_heads,
+        sparse_reads=args.sparse_reads,
+        read_heads=args.read_heads,
         gpu_id=args.cuda,
         debug=False,
         batch_first=True,

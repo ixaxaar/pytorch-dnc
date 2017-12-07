@@ -25,7 +25,7 @@ class Index(object):
       self.res.initializeForDevice(self.gpu_id)
 
     nr_samples = self.nr_cells * 100 * self.cell_size
-    train = train if train is not None else T.arange(-nr_samples, nr_samples, 2).view(self.nr_cells * 100, self.cell_size) / nr_samples
+    train = train if train is not None else T.arange(-nr_samples, nr_samples, 2).view(self.nr_cells * 100, self.cell_size) / (nr_samples/10)
     # train = T.randn(self.nr_cells * 100, self.cell_size)
 
     self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.num_lists, faiss.METRIC_INNER_PRODUCT)

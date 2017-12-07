@@ -28,7 +28,8 @@ class SDNC(nn.Module):
       dropout=0,
       bidirectional=False,
       nr_cells=5,
-      sparse_reads=2,
+      sparse_reads=10,
+      read_heads=4,
       cell_size=10,
       nonlinearity='tanh',
       gpu_id=-1,
@@ -51,6 +52,7 @@ class SDNC(nn.Module):
     self.bidirectional = bidirectional
     self.nr_cells = nr_cells
     self.sparse_reads = sparse_reads
+    self.read_heads = read_heads
     self.cell_size = cell_size
     self.nonlinearity = nonlinearity
     self.gpu_id = gpu_id
@@ -60,7 +62,7 @@ class SDNC(nn.Module):
     self.clip = clip
 
     self.w = self.cell_size
-    self.r = self.sparse_reads
+    self.r = self.read_heads
 
     self.read_vectors_size = self.r * self.w
     self.output_size = self.hidden_size
@@ -90,7 +92,8 @@ class SDNC(nn.Module):
                 input_size=self.output_size,
                 mem_size=self.nr_cells,
                 cell_size=self.w,
-                sparse_reads=self.r,
+                sparse_reads=self.sparse_reads,
+                read_heads=self.read_heads,
                 gpu_id=self.gpu_id,
                 mem_gpu_id=self.gpu_id,
                 independent_linears=self.independent_linears
@@ -105,7 +108,8 @@ class SDNC(nn.Module):
               input_size=self.output_size,
               mem_size=self.nr_cells,
               cell_size=self.w,
-              sparse_reads=self.r,
+              sparse_reads=self.sparse_reads,
+              read_heads=self.read_heads,
               gpu_id=self.gpu_id,
               mem_gpu_id=self.gpu_id,
               independent_linears=self.independent_linears
