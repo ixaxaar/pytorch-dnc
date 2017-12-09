@@ -11,7 +11,7 @@ from .util import *
 
 class Index(object):
 
-  def __init__(self, cell_size=20, nr_cells=1024, K=4, num_lists=30, probes=32, res=None, train=None, gpu_id=-1):
+  def __init__(self, cell_size=20, nr_cells=1024, K=4, num_lists=32, probes=32, res=None, train=None, gpu_id=-1):
     super(Index, self).__init__()
     self.cell_size = cell_size
     self.nr_cells = nr_cells
@@ -29,7 +29,7 @@ class Index(object):
     # train = T.randn(self.nr_cells * 100, self.cell_size)
 
     self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.num_lists, faiss.METRIC_INNER_PRODUCT)
-    self.index.setNumProbes(self.num_lists)
+    self.index.setNumProbes(self.probes)
     self.train(train)
 
   def cuda(self, gpu_id):

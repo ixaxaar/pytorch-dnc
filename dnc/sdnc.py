@@ -9,6 +9,7 @@ import numpy as np
 from torch.nn.utils.rnn import pad_packed_sequence as pad
 from torch.nn.utils.rnn import pack_padded_sequence as pack
 from torch.nn.utils.rnn import PackedSequence
+from torch.nn.init import orthogonal
 
 from .util import *
 from .sparse_memory import SparseMemory
@@ -119,6 +120,7 @@ class SDNC(nn.Module):
 
     # final output layer
     self.output = nn.Linear(self.nn_output_size, self.input_size)
+    orthogonal(self.output.weight)
 
     if self.gpu_id != -1:
       [x.cuda(self.gpu_id) for x in self.rnns]
@@ -264,6 +266,8 @@ class SDNC(nn.Module):
     # pass through final output layer
     inputs = [self.output(i) for i in inputs]
     outputs = T.stack(inputs, 1 if self.batch_first else 0)
+
+    # outputs.register_hook(lambda x: print("========================================", x.squeeze()))
 
     if is_packed:
       outputs = pack(output, lengths)
