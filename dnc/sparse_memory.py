@@ -103,7 +103,7 @@ class SparseMemory(nn.Module):
           'read_weights': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'write_weights': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'read_vectors': cuda(T.zeros(b, r, w).fill_(δ), gpu_id=self.gpu_id),
-          'last_used_mem': cuda(T.zeros(b, 1).fill_(δ), gpu_id=self.gpu_id).long(),
+          'last_used_mem': cuda(T.zeros(b, 1).fill_(c+1), gpu_id=self.gpu_id).long(),
           'usage': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'read_positions': cuda(T.arange(0, c).expand(b, c), gpu_id=self.gpu_id).long()
       }
@@ -125,9 +125,10 @@ class SparseMemory(nn.Module):
         hidden['read_weights'].data.fill_(δ)
         hidden['write_weights'].data.fill_(δ)
         hidden['read_vectors'].data.fill_(δ)
-        hidden['last_used_mem'].data.fill_(0)
+        hidden['last_used_mem'].data.fill_(c+1+self.timestep)
         hidden['usage'].data.fill_(δ)
-        hidden['read_positions'] = cuda(T.arange(0, c).expand(b, c), gpu_id=self.gpu_id).long()
+        hidden['read_positions'] = cuda(T.arange(self.timestep, c+self.timestep).expand(b, c), gpu_id=self.gpu_id).long()
+
     return hidden
 
   def write_into_sparse_memory(self, hidden):
@@ -137,7 +138,6 @@ class SparseMemory(nn.Module):
     (b, m, w) = hidden['memory'].size()
     # update memory
     hidden['memory'].scatter_(1, positions.unsqueeze(2).expand(b, self.read_heads*self.K+1, w), visible_memory)
-    print(positions)
 
     # non-differentiable operations
     pos = positions.data.cpu().numpy()
@@ -145,7 +145,8 @@ class SparseMemory(nn.Module):
       # update indexes
       hidden['indexes'][batch].reset()
       hidden['indexes'][batch].add(hidden['memory'][batch], last=pos[batch][-1])
-      hidden['last_used_mem'][batch] = (int(pos[batch][-1]) + 1) if (pos[batch][-1] + 1) < self.mem_size else 0
+
+    hidden['last_used_mem'] = hidden['last_used_mem'] + 1 if self.timestep < self.mem_size else hidden['last_used_mem'] * 0
 
     return hidden
 
@@ -216,7 +217,7 @@ class SparseMemory(nn.Module):
     (b, m, w) = memory.size()
     visible_memory = memory.gather(1, read_positions.unsqueeze(2).expand(b, r*k+1, w))
 
-    read_weights = F.softmax(θ(visible_memory, keys), dim=2)
+    read_weights = σ(θ(visible_memory, keys), 2)
     read_vectors = T.bmm(read_weights, visible_memory)
     read_weights = T.prod(read_weights, 1)
 

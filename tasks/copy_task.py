@@ -143,7 +143,7 @@ if __name__ == '__main__':
         sparse_reads=args.sparse_reads,
         read_heads=args.read_heads,
         gpu_id=args.cuda,
-        debug=False,
+        debug=True,
         batch_first=True,
         independent_linears=False
     )
@@ -219,71 +219,84 @@ if __name__ == '__main__':
       # print(F.relu6(output))
       last_save_losses = []
 
-      # viz.heatmap(
-      #     v['memory'],
-      #     opts=dict(
-      #         xtickstep=10,
-      #         ytickstep=2,
-      #         title='Memory, t: ' + str(epoch) + ', loss: ' + str(loss),
-      #         ylabel='layer * time',
-      #         xlabel='mem_slot * mem_size'
-      #     )
-      # )
+      viz.heatmap(
+          v['memory'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Memory, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot * mem_size'
+          )
+      )
 
-      # viz.heatmap(
-      #     v['link_matrix'][-1].reshape(args.mem_slot, args.mem_slot),
-      #     opts=dict(
-      #         xtickstep=10,
-      #         ytickstep=2,
-      #         title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
-      #         ylabel='mem_slot',
-      #         xlabel='mem_slot'
-      #     )
-      # )
+      if args.memory_type == 'DNC':
+        viz.heatmap(
+            v['link_matrix'][-1].reshape(args.mem_slot, args.mem_slot),
+            opts=dict(
+                xtickstep=10,
+                ytickstep=2,
+                title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
+                ylabel='mem_slot',
+                xlabel='mem_slot'
+            )
+        )
 
-      # viz.heatmap(
-      #     v['precedence'],
-      #     opts=dict(
-      #         xtickstep=10,
-      #         ytickstep=2,
-      #         title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
-      #         ylabel='layer * time',
-      #         xlabel='mem_slot'
-      #     )
-      # )
+        viz.heatmap(
+            v['precedence'],
+            opts=dict(
+                xtickstep=10,
+                ytickstep=2,
+                title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
+                ylabel='layer * time',
+                xlabel='mem_slot'
+            )
+        )
 
-      # viz.heatmap(
-      #     v['read_weights'],
-      #     opts=dict(
-      #         xtickstep=10,
-      #         ytickstep=2,
-      #         title='Read Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
-      #         ylabel='layer * time',
-      #         xlabel='nr_read_heads * mem_slot'
-      #     )
-      # )
+      if args.memory_type == 'SDNC':
+        viz.heatmap(
+            v['read_positions'],
+            opts=dict(
+                xtickstep=10,
+                ytickstep=2,
+                title='Read Positions, t: ' + str(epoch) + ', loss: ' + str(loss),
+                ylabel='layer * time',
+                xlabel='mem_slot'
+            )
+        )
 
-      # viz.heatmap(
-      #     v['write_weights'],
-      #     opts=dict(
-      #         xtickstep=10,
-      #         ytickstep=2,
-      #         title='Write Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
-      #         ylabel='layer * time',
-      #         xlabel='mem_slot'
-      #     )
-      # )
+      viz.heatmap(
+          v['read_weights'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Read Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='nr_read_heads * mem_slot'
+          )
+      )
 
-      # viz.heatmap(
-      #     v['usage_vector'],
-      #     opts=dict(
-      #         xtickstep=10,
-      #         ytickstep=2,
-      #         title='Usage Vector, t: ' + str(epoch) + ', loss: ' + str(loss),
-      #         ylabel='layer * time',
-      #         xlabel='mem_slot'
-      #     )
-      # )
+      viz.heatmap(
+          v['write_weights'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Write Weights, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot'
+          )
+      )
+
+      viz.heatmap(
+          v['usage_vector'] if args.memory_type == 'DNC' else v['usage'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Usage Vector, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot'
+          )
+      )
 
     if take_checkpoint:
       llprint("\nSaving Checkpoint ... "),

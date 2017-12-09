@@ -158,19 +158,24 @@ class SDNC(nn.Module):
     if not debug_obj:
       debug_obj = {
           'memory': [],
-          'link_matrix': [],
-          'precedence': [],
+          'visible_memory': [],
           'read_weights': [],
           'write_weights': [],
-          'usage_vector': [],
+          'read_vectors': [],
+          'last_used_mem': [],
+          'usage': [],
+          'read_positions': []
       }
 
-    # debug_obj['memory'].append(mhx['memory'][0].data.cpu().numpy())
-    # debug_obj['link_matrix'].append(mhx['link_matrix'][0][0].data.cpu().numpy())
-    # debug_obj['precedence'].append(mhx['precedence'][0].data.cpu().numpy())
-    # debug_obj['read_weights'].append(mhx['read_weights'][0].data.cpu().numpy())
-    # debug_obj['write_weights'].append(mhx['write_weights'][0].data.cpu().numpy())
-    # debug_obj['usage_vector'].append(mhx['usage_vector'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['memory'].append(mhx['memory'][0].data.cpu().numpy())
+    debug_obj['visible_memory'].append(mhx['visible_memory'][0].data.cpu().numpy())
+    debug_obj['read_weights'].append(mhx['read_weights'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['write_weights'].append(mhx['write_weights'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['read_vectors'].append(mhx['read_vectors'][0].data.cpu().numpy())
+    debug_obj['last_used_mem'].append(mhx['last_used_mem'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['usage'].append(mhx['usage'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['read_positions'].append(mhx['read_positions'][0].unsqueeze(0).data.cpu().numpy())
+
     return debug_obj
 
   def _layer_forward(self, input, layer, hx=(None, None), pass_through_memory=True):
@@ -259,15 +264,13 @@ class SDNC(nn.Module):
           outs[time] = T.cat([outs[time], last_read], 1)
         inputs[time] = outs[time]
 
-    # if self.debug:
-      # viz = {k: np.array(v) for k, v in viz.items()}
-      # viz = {k: v.reshape(v.shape[0], v.shape[1] * v.shape[2]) for k, v in viz.items()}
+    if self.debug:
+      viz = {k: np.array(v) for k, v in viz.items()}
+      viz = {k: v.reshape(v.shape[0], v.shape[1] * v.shape[2]) for k, v in viz.items()}
 
     # pass through final output layer
     inputs = [self.output(i) for i in inputs]
     outputs = T.stack(inputs, 1 if self.batch_first else 0)
-
-    # outputs.register_hook(lambda x: print("========================================", x.squeeze()))
 
     if is_packed:
       outputs = pack(output, lengths)
