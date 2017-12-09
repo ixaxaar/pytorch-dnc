@@ -154,3 +154,7 @@ def ensure_gpu(tensor, gpu_id):
   else:
     return tensor
 
+
+def print_gradient(x, name):
+  s = "Gradient of " + name + " ----------------------------------"
+  x.register_hook(lambda y: print(s, y.squeeze()))
