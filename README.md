@@ -1,6 +1,23 @@
 # Differentiable Neural Computers and Sparse Differentiable Neural Computers, for Pytorch
 
-[![Build Status](https://travis-ci.org/ixaxaar/pytorch-dnc.svg?branch=master)](https://travis-ci.org/ixaxaar/pytorch-dnc) [![PyPI version](https://badge.fury.io/py/dnc.svg)](https://badge.fury.io/py/dnc)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Differentiable Neural Computers and Sparse Differentiable Neural Computers, for Pytorch](#differentiable-neural-computers-and-sparse-differentiable-neural-computers-for-pytorch)
+  - [Install](#install)
+    - [From source](#from-source)
+  - [Architecure](#architecure)
+  - [Usage](#usage)
+    - [DNC](#dnc)
+      - [Example usage:](#example-usage)
+      - [Debugging:](#debugging)
+    - [SDNC](#sdnc)
+      - [Example usage:](#example-usage-1)
+      - [Debugging:](#debugging-1)
+  - [Example copy task](#example-copy-task)
+  - [General noteworthy stuff](#general-noteworthy-stuff)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 [![Build Status](https://travis-ci.org/ixaxaar/pytorch-dnc.svg?branch=master)](https://travis-ci.org/ixaxaar/pytorch-dnc) [![PyPI version](https://badge.fury.io/py/dnc.svg)](https://badge.fury.io/py/dnc)
 
