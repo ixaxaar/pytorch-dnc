@@ -171,7 +171,9 @@ class SparseMemory(nn.Module):
     # store the write weights
     hidden['write_weights'].scatter_(1, hidden['read_positions'], write_weights)
 
-    hidden['visible_memory'] = hidden['visible_memory'] + T.bmm(write_weights.unsqueeze(2), write_vector)
+    erase_matrix = I.unsqueeze(2).expand(hidden['visible_memory'].size())
+
+    hidden['visible_memory'] = hidden['visible_memory'] * (1 - erase_matrix) + T.bmm(write_weights.unsqueeze(2), write_vector)
     hidden = self.write_into_sparse_memory(hidden)
 
     return hidden
