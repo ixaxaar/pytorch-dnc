@@ -11,6 +11,7 @@ install:
   - pip install -qqq http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl
   - pip install -qqq numpy
   - pip install -qqq visdom
+  - pip install -qqq pyflann3
 # command to run tests
 script:
   - pytest ./test

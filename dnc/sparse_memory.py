@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-from .indexes import Index
+from .flann_index import FLANNIndex
 from .util import *
 import time
 
@@ -73,8 +73,8 @@ class SparseMemory(nn.Module):
     else:
       # create new indexes
       hidden['indexes'] = \
-          [Index(cell_size=self.cell_size,
-                 nr_cells=self.mem_size, K=self.K, num_lists=self.num_lists,
+          [FLANNIndex(cell_size=self.cell_size,
+                 nr_cells=self.mem_size, K=self.K, num_kdtrees=self.num_lists,
                  probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
 
     # add existing memory into indexes
@@ -103,7 +103,7 @@ class SparseMemory(nn.Module):
           'read_weights': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'write_weights': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'read_vectors': cuda(T.zeros(b, r, w).fill_(δ), gpu_id=self.gpu_id),
-          'last_used_mem': cuda(T.zeros(b, 1).fill_(c+1), gpu_id=self.gpu_id).long(),
+          'least_used_mem': cuda(T.zeros(b, 1).fill_(c+1), gpu_id=self.gpu_id).long(),
           'usage': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'read_positions': cuda(T.arange(0, c).expand(b, c), gpu_id=self.gpu_id).long()
       }
@@ -114,7 +114,7 @@ class SparseMemory(nn.Module):
       hidden['read_weights'] = hidden['read_weights'].clone()
       hidden['write_weights'] = hidden['write_weights'].clone()
       hidden['read_vectors'] = hidden['read_vectors'].clone()
-      hidden['last_used_mem'] = hidden['last_used_mem'].clone()
+      hidden['least_used_mem'] = hidden['least_used_mem'].clone()
       hidden['usage'] = hidden['usage'].clone()
       hidden['read_positions'] = hidden['read_positions'].clone()
       hidden = self.rebuild_indexes(hidden, erase)
@@ -125,7 +125,7 @@ class SparseMemory(nn.Module):
         hidden['read_weights'].data.fill_(δ)
         hidden['write_weights'].data.fill_(δ)
         hidden['read_vectors'].data.fill_(δ)
-        hidden['last_used_mem'].data.fill_(c+1+self.timestep)
+        hidden['least_used_mem'].data.fill_(c+1+self.timestep)
         hidden['usage'].data.fill_(δ)
         hidden['read_positions'] = cuda(T.arange(self.timestep, c+self.timestep).expand(b, c), gpu_id=self.gpu_id).long()
 
@@ -146,7 +146,7 @@ class SparseMemory(nn.Module):
       hidden['indexes'][batch].reset()
       hidden['indexes'][batch].add(hidden['memory'][batch], last=pos[batch][-1])
 
-    hidden['last_used_mem'] = hidden['last_used_mem'] + 1 if self.timestep < self.mem_size else hidden['last_used_mem'] * 0
+    hidden['least_used_mem'] = hidden['least_used_mem'] + 1 if self.timestep < self.mem_size else hidden['least_used_mem'] * 0
 
     return hidden
 
@@ -199,7 +199,7 @@ class SparseMemory(nn.Module):
 
     return usage, I
 
-  def read_from_sparse_memory(self, memory, indexes, keys, last_used_mem, usage):
+  def read_from_sparse_memory(self, memory, indexes, keys, least_used_mem, usage):
     b = keys.size(0)
     read_positions = []
 
@@ -213,7 +213,7 @@ class SparseMemory(nn.Module):
     # TODO: explore possibility of reading co-locations or ranges and such
     (b, r, k) = read_positions.size()
     read_positions = var(read_positions)
-    read_positions = T.cat([read_positions.view(b, -1), last_used_mem], 1)
+    read_positions = T.cat([read_positions.view(b, -1), least_used_mem], 1)
 
     # differentiable ops
     (b, m, w) = memory.size()
@@ -232,7 +232,7 @@ class SparseMemory(nn.Module):
           hidden['memory'],
           hidden['indexes'],
           read_query,
-          hidden['last_used_mem'],
+          hidden['least_used_mem'],
           hidden['usage']
         )
 

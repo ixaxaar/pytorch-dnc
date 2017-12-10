@@ -133,6 +133,8 @@ class DNC(nn.Module):
       h = cuda(T.zeros(self.num_hidden_layers, batch_size, self.output_size), gpu_id=self.gpu_id)
       xavier_uniform(h)
 
+      chx = [ (h, h) if self.rnn_type.lower() == 'lstm' else h for x in range(self.num_layers)]
+
     # Last read vectors
     if last_read is None:
       last_read = cuda(T.zeros(batch_size, self.w * self.r), gpu_id=self.gpu_id)
