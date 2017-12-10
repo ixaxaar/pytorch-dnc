@@ -9,26 +9,28 @@ from faiss.faiss import cast_integer_to_long_ptr as cast_long
 
 from .util import *
 
-class Index(object):
+
+class FAISSIndex(object):
 
   def __init__(self, cell_size=20, nr_cells=1024, K=4, num_lists=32, probes=32, res=None, train=None, gpu_id=-1):
-    super(Index, self).__init__()
+    super(FAISSIndex, self).__init__()
     self.cell_size = cell_size
     self.nr_cells = nr_cells
     self.probes = probes
     self.K = K
     self.num_lists = num_lists
     self.gpu_id = gpu_id
-    self.res = res if res else faiss.StandardGpuResources()
-    self.res.setTempMemoryFraction(0.01)
+
+    res = res if res else faiss.StandardGpuResources()
+    res.setTempMemoryFraction(0.01)
     if self.gpu_id != -1:
-      self.res.initializeForDevice(self.gpu_id)
+      res.initializeForDevice(self.gpu_id)
 
     nr_samples = self.nr_cells * 100 * self.cell_size
     train = train if train is not None else T.randn(self.nr_cells * 100, self.cell_size) * 10
     # train = T.randn(self.nr_cells * 100, self.cell_size)
 
-    self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.num_lists, faiss.METRIC_INNER_PRODUCT)
+    self.index = faiss.GpuIndexIVFFlat(res, self.cell_size, self.num_lists, faiss.METRIC_INNER_PRODUCT)
     self.index.setNumProbes(self.probes)
     self.train(train)
 
@@ -81,3 +83,4 @@ class Index(object):
     )
     T.cuda.synchronize()
     return (distances, (labels-1))
+
