@@ -165,7 +165,7 @@ class SDNC(nn.Module):
           'read_weights': [],
           'write_weights': [],
           'read_vectors': [],
-          'last_used_mem': [],
+          'least_used_mem': [],
           'usage': [],
           'read_positions': []
       }
@@ -175,7 +175,7 @@ class SDNC(nn.Module):
     debug_obj['read_weights'].append(mhx['read_weights'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['write_weights'].append(mhx['write_weights'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['read_vectors'].append(mhx['read_vectors'][0].data.cpu().numpy())
-    debug_obj['last_used_mem'].append(mhx['last_used_mem'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['least_used_mem'].append(mhx['least_used_mem'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['usage'].append(mhx['usage'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['read_positions'].append(mhx['read_positions'][0].unsqueeze(0).data.cpu().numpy())
 
