@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import torch.nn as nn
 import torch as T
@@ -98,7 +99,7 @@ def σ(input, axis=1):
 def register_nan_checks(model):
   def check_grad(module, grad_input, grad_output):
     # print(module) you can add this to see that the hook is called
-    print('hook called for ' + str(type(module)))
+    # print('hook called for ' + str(type(module)))
     if any(np.all(np.isnan(gi.data.cpu().numpy())) for gi in grad_input if gi is not None):
       print('NaN gradient in grad_input ' + type(module).__name__)
 
@@ -129,3 +130,31 @@ def check_nan_gradient(name=''):
       # assert 0, 'nan gradient'
       return tensor
   return f
+
+def ptr(tensor):
+  if T.is_tensor(tensor):
+    return tensor.storage().data_ptr()
+  elif hasattr(tensor, 'data'):
+    return tensor.data.storage().data_ptr()
+  else:
+    return tensor
+
+# TODO: EWW change this shit
+def ensure_gpu(tensor, gpu_id):
+  if "cuda" in str(type(tensor)) and gpu_id != -1:
+    return tensor.cuda(gpu_id)
+  elif "cuda" in str(type(tensor)):
+    return tensor.cpu()
+  elif "Tensor" in str(type(tensor)) and gpu_id != -1:
+    return tensor.cuda(gpu_id)
+  elif "Tensor" in str(type(tensor)):
+    return tensor
+  elif type(tensor) is np.ndarray:
+    return cudavec(tensor, gpu_id=gpu_id).data
+  else:
+    return tensor
+
+
+def print_gradient(x, name):
+  s = "Gradient of " + name + " ----------------------------------"
+  x.register_hook(lambda y: print(s, y.squeeze()))

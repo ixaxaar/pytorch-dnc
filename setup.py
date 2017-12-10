@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 """A setuptools based setup module.
 See:
@@ -54,9 +55,9 @@ setup(
 
     keywords='differentiable neural computer dnc memory network',
 
-    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'tasks']),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'tasks', 'scripts']),
 
-    install_requires=['torch', 'numpy'],
+    install_requires=['torch', 'numpy', 'pyflann3'],
 
     extras_require={
         'dev': ['check-manifest'],

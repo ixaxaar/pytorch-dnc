@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*- 
+# #!/usr/bin/env python3
+# # -*- coding: utf-8 -*-
 
 import pytest
 import numpy as np
@@ -16,11 +16,10 @@ import sys
 import os
 import math
 import time
+import functools
 sys.path.insert(0, '.')
 
-import functools
-
-from dnc import DNC
+from dnc import SDNC
 from test_utils import generate_data, criterion
 
 
@@ -29,13 +28,14 @@ def test_rnn_1():
 
   input_size = 100
   hidden_size = 100
-  rnn_type = 'rnn'
+  rnn_type = 'gru'
   num_layers = 1
   num_hidden_layers = 1
   dropout = 0
-  nr_cells = 1
-  cell_size = 1
+  nr_cells = 100
+  cell_size = 10
   read_heads = 1
+  sparse_reads = 2
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -45,7 +45,7 @@ def test_rnn_1():
   clip = 10
   length = 10
 
-  rnn = DNC(
+  rnn = SDNC(
       input_size=input_size,
       hidden_size=hidden_size,
       rnn_type=rnn_type,
@@ -55,6 +55,7 @@ def test_rnn_1():
       nr_cells=nr_cells,
       cell_size=cell_size,
       read_heads=read_heads,
+      sparse_reads=sparse_reads,
       gpu_id=gpu_id,
       debug=debug
   )
@@ -76,8 +77,8 @@ def test_rnn_1():
 
   assert target_output.size() == T.Size([21, 10, 100])
   assert chx[0][0].size() == T.Size([10,100])
-  assert mhx['memory'].size() == T.Size([10,1,1])
-  assert rv.size() == T.Size([10, 1])
+  # assert mhx['memory'].size() == T.Size([10,1,1])
+  assert rv.size() == T.Size([10, 10])
 
 
 def test_rnn_n():
@@ -85,13 +86,14 @@ def test_rnn_n():
 
   input_size = 100
   hidden_size = 100
-  rnn_type = 'rnn'
+  rnn_type = 'gru'
   num_layers = 3
   num_hidden_layers = 5
   dropout = 0.2
-  nr_cells = 12
+  nr_cells = 200
   cell_size = 17
-  read_heads = 3
+  read_heads = 2
+  sparse_reads = 4
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -101,7 +103,7 @@ def test_rnn_n():
   clip = 20
   length = 13
 
-  rnn = DNC(
+  rnn = SDNC(
       input_size=input_size,
       hidden_size=hidden_size,
       rnn_type=rnn_type,
@@ -111,6 +113,7 @@ def test_rnn_n():
       nr_cells=nr_cells,
       cell_size=cell_size,
       read_heads=read_heads,
+      sparse_reads=sparse_reads,
       gpu_id=gpu_id,
       debug=debug
   )
@@ -131,9 +134,9 @@ def test_rnn_n():
   optimizer.step()
 
   assert target_output.size() == T.Size([27, 10, 100])
-  assert chx[1].size() == T.Size([num_hidden_layers,10,100])
-  assert mhx['memory'].size() == T.Size([10,12,17])
-  assert rv.size() == T.Size([10, 51])
+  assert chx[0].size() == T.Size([num_hidden_layers,10,100])
+  # assert mhx['memory'].size() == T.Size([10,12,17])
+  assert rv.size() == T.Size([10, 34])
 
 
 def test_rnn_no_memory_pass():
@@ -141,13 +144,13 @@ def test_rnn_no_memory_pass():
 
   input_size = 100
   hidden_size = 100
-  rnn_type = 'rnn'
+  rnn_type = 'gru'
   num_layers = 3
   num_hidden_layers = 5
   dropout = 0.2
-  nr_cells = 12
+  nr_cells = 5000
   cell_size = 17
-  read_heads = 3
+  sparse_reads = 3
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -157,7 +160,7 @@ def test_rnn_no_memory_pass():
   clip = 20
   length = 13
 
-  rnn = DNC(
+  rnn = SDNC(
       input_size=input_size,
       hidden_size=hidden_size,
       rnn_type=rnn_type,
@@ -166,7 +169,7 @@ def test_rnn_no_memory_pass():
       dropout=dropout,
       nr_cells=nr_cells,
       cell_size=cell_size,
-      read_heads=read_heads,
+      sparse_reads=sparse_reads,
       gpu_id=gpu_id,
       debug=debug
   )
@@ -192,8 +195,7 @@ def test_rnn_no_memory_pass():
   optimizer.step()
 
   assert target_output.size() == T.Size([27, 10, 100])
-  assert chx[1].size() == T.Size([num_hidden_layers,10,100])
-  assert mhx['memory'].size() == T.Size([10,12,17])
+  assert chx[0].size() == T.Size([num_hidden_layers,10,100])
+  # assert mhx['memory'].size() == T.Size([10,12,17])
   assert rv == None
-
 

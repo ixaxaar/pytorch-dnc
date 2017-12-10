@@ -9,14 +9,13 @@ import numpy as np
 from torch.nn.utils.rnn import pad_packed_sequence as pad
 from torch.nn.utils.rnn import pack_padded_sequence as pack
 from torch.nn.utils.rnn import PackedSequence
-
-from .util import *
-from .memory import *
-
 from torch.nn.init import orthogonal, xavier_uniform
 
+from .util import *
+from .sparse_memory import SparseMemory
 
-class DNC(nn.Module):
+
+class SDNC(nn.Module):
 
   def __init__(
       self,
@@ -29,8 +28,9 @@ class DNC(nn.Module):
       batch_first=True,
       dropout=0,
       bidirectional=False,
-      nr_cells=5,
-      read_heads=2,
+      nr_cells=5000,
+      sparse_reads=10,
+      read_heads=4,
       cell_size=10,
       nonlinearity='tanh',
       gpu_id=-1,
@@ -39,7 +39,7 @@ class DNC(nn.Module):
       debug=False,
       clip=20
   ):
-    super(DNC, self).__init__()
+    super(SDNC, self).__init__()
     # todo: separate weights and RNNs for the interface and output vectors
 
     self.input_size = input_size
@@ -52,6 +52,7 @@ class DNC(nn.Module):
     self.dropout = dropout
     self.bidirectional = bidirectional
     self.nr_cells = nr_cells
+    self.sparse_reads = sparse_reads
     self.read_heads = read_heads
     self.cell_size = cell_size
     self.nonlinearity = nonlinearity
@@ -65,7 +66,6 @@ class DNC(nn.Module):
     self.r = self.read_heads
 
     self.read_vectors_size = self.r * self.w
-    self.interface_size = self.read_vectors_size + (3 * self.w) + (5 * self.r) + 3
     self.output_size = self.hidden_size
 
     self.nn_input_size = self.input_size + self.read_vectors_size
@@ -89,12 +89,14 @@ class DNC(nn.Module):
       # memories for each layer
       if not self.share_memory:
         self.memories.append(
-            Memory(
+            SparseMemory(
                 input_size=self.output_size,
                 mem_size=self.nr_cells,
                 cell_size=self.w,
-                read_heads=self.r,
+                sparse_reads=self.sparse_reads,
+                read_heads=self.read_heads,
                 gpu_id=self.gpu_id,
+                mem_gpu_id=self.gpu_id,
                 independent_linears=self.independent_linears
             )
         )
@@ -103,12 +105,14 @@ class DNC(nn.Module):
     # only one memory shared by all layers
     if self.share_memory:
       self.memories.append(
-          Memory(
+          SparseMemory(
               input_size=self.output_size,
               mem_size=self.nr_cells,
               cell_size=self.w,
-              read_heads=self.r,
+              sparse_reads=self.sparse_reads,
+              read_heads=self.read_heads,
               gpu_id=self.gpu_id,
+              mem_gpu_id=self.gpu_id,
               independent_linears=self.independent_linears
           )
       )
@@ -157,19 +161,24 @@ class DNC(nn.Module):
     if not debug_obj:
       debug_obj = {
           'memory': [],
-          'link_matrix': [],
-          'precedence': [],
+          'visible_memory': [],
           'read_weights': [],
           'write_weights': [],
-          'usage_vector': [],
+          'read_vectors': [],
+          'least_used_mem': [],
+          'usage': [],
+          'read_positions': []
       }
 
     debug_obj['memory'].append(mhx['memory'][0].data.cpu().numpy())
-    debug_obj['link_matrix'].append(mhx['link_matrix'][0][0].data.cpu().numpy())
-    debug_obj['precedence'].append(mhx['precedence'][0].data.cpu().numpy())
-    debug_obj['read_weights'].append(mhx['read_weights'][0].data.cpu().numpy())
-    debug_obj['write_weights'].append(mhx['write_weights'][0].data.cpu().numpy())
-    debug_obj['usage_vector'].append(mhx['usage_vector'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['visible_memory'].append(mhx['visible_memory'][0].data.cpu().numpy())
+    debug_obj['read_weights'].append(mhx['read_weights'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['write_weights'].append(mhx['write_weights'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['read_vectors'].append(mhx['read_vectors'][0].data.cpu().numpy())
+    debug_obj['least_used_mem'].append(mhx['least_used_mem'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['usage'].append(mhx['usage'][0].unsqueeze(0).data.cpu().numpy())
+    debug_obj['read_positions'].append(mhx['read_positions'][0].unsqueeze(0).data.cpu().numpy())
+
     return debug_obj
 
   def _layer_forward(self, input, layer, hx=(None, None), pass_through_memory=True):
@@ -179,13 +188,14 @@ class DNC(nn.Module):
     input, chx = self.rnns[layer](input.unsqueeze(1), chx)
     input = input.squeeze(1)
 
-    # the interface vector
-    ξ = input
     # clip the controller output
     if self.clip != 0:
       output = T.clamp(input, -self.clip, self.clip)
     else:
       output = input
+
+    # the interface vector
+    ξ = output
 
     # pass through memory
     if pass_through_memory:
