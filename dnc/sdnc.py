@@ -28,7 +28,7 @@ class SDNC(nn.Module):
       batch_first=True,
       dropout=0,
       bidirectional=False,
-      nr_cells=5,
+      nr_cells=5000,
       sparse_reads=10,
       read_heads=4,
       cell_size=10,
