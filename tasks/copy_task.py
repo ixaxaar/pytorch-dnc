@@ -207,8 +207,13 @@ if __name__ == '__main__':
 
     last_save_losses.append(loss_value)
 
-    if summarize:
+    if summarize and rnn.debug:
       loss = np.mean(last_save_losses)
+      # print(input_data)
+      # print("1111111111111111111111111111111111111111111111")
+      # print(target_output)
+      # print('2222222222222222222222222222222222222222222222')
+      # print(F.relu6(output))
       llprint("\n\tAvg. Logistic Loss: %.4f\n" % (loss))
       if np.isnan(loss):
         raise Exception('nan Loss')
