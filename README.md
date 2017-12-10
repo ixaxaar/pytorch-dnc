@@ -13,18 +13,16 @@ and the Sparse version of the DNC (the SDNC) described in [Scaling Memory-Augmen
 pip install dnc
 ```
 
-For using sparse DNCs, additional libraries are required:
+### From source
 
-### FAISS
+```
+git clone https://github.com/ixaxaar/pytorch-dnc
+cd pytorch-dnc
+pip install -r ./requirements.txt
+pip install -e .
+```
 
-SDNCs require an additional library: [facebookresearch/faiss](https://github.com/facebookresearch/faiss).
-A compiled version of the library with intel SSE + CUDA 8 support ships with this library.
-If that does not work, one might need to install from source, as detailed below:
-
-#### Installing from source
-
-A script for building and installing this lib from source can be found at [scripts/install.sh](./scripts/install.sh).
-Tested on `ubuntu 16.04`, `Arch / Manjaro` and `Fedora 27`.
+`pytest` is required to run the test
 
 ## Architecure
 
