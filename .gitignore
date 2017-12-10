@@ -19,3 +19,4 @@ __pycache__/
 dist/
 dnc.egg-info/
 tasks/checkpoints/
+faiss/
