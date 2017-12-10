@@ -13,6 +13,8 @@ from torch.nn.utils.rnn import PackedSequence
 from .util import *
 from .memory import *
 
+from torch.nn.init import orthogonal, xavier_uniform
+
 
 class DNC(nn.Module):
 
@@ -114,6 +116,7 @@ class DNC(nn.Module):
 
     # final output layer
     self.output = nn.Linear(self.nn_output_size, self.input_size)
+    orthogonal(self.output.weight)
 
     if self.gpu_id != -1:
       [x.cuda(self.gpu_id) for x in self.rnns]
@@ -127,7 +130,8 @@ class DNC(nn.Module):
 
     # initialize hidden state of the controller RNN
     if chx is None:
-      chx = [None for x in range(self.num_layers)]
+      h = cuda(T.zeros(self.num_hidden_layers, batch_size, self.output_size), gpu_id=self.gpu_id)
+      xavier_uniform(h)
 
     # Last read vectors
     if last_read is None:

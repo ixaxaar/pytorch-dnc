@@ -9,7 +9,7 @@ import numpy as np
 from torch.nn.utils.rnn import pad_packed_sequence as pad
 from torch.nn.utils.rnn import pack_padded_sequence as pack
 from torch.nn.utils.rnn import PackedSequence
-from torch.nn.init import orthogonal
+from torch.nn.init import orthogonal, xavier_uniform
 
 from .util import *
 from .sparse_memory import SparseMemory
@@ -134,7 +134,10 @@ class SDNC(nn.Module):
 
     # initialize hidden state of the controller RNN
     if chx is None:
-      chx = [None for x in range(self.num_layers)]
+      h = cuda(T.zeros(self.num_hidden_layers, batch_size, self.output_size), gpu_id=self.gpu_id)
+      xavier_uniform(h)
+
+      chx = [ (h, h) if self.rnn_type.lower() == 'lstm' else h for x in range(self.num_layers)]
 
     # Last read vectors
     if last_read is None:
