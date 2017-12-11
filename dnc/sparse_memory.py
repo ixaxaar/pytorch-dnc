@@ -22,7 +22,8 @@ class SparseMemory(nn.Module):
       cell_size=32,
       independent_linears=True,
       read_heads=4,
-      sparse_reads=10,
+      sparse_reads=4,
+      temporal_reads=4,
       num_lists=None,
       index_checks=32,
       gpu_id=-1,
@@ -37,6 +38,7 @@ class SparseMemory(nn.Module):
     self.input_size = input_size
     self.independent_linears = independent_linears
     self.K = sparse_reads if self.mem_size > sparse_reads else self.mem_size
+    self.KL = temporal_reads if self.mem_size > temporal_reads else self.mem_size
     self.read_heads = read_heads
     self.num_lists = num_lists if num_lists is not None else int(self.mem_size / 100)
     self.index_checks = index_checks
@@ -44,23 +46,23 @@ class SparseMemory(nn.Module):
     m = self.mem_size
     w = self.cell_size
     r = self.read_heads
-    c = r * self.K + 1
+    self.c = (r * self.K) + (self.KL * 2) + 1
 
     if self.independent_linears:
       self.read_query_transform = nn.Linear(self.input_size, w*r)
       self.write_vector_transform = nn.Linear(self.input_size, w)
-      self.interpolation_gate_transform = nn.Linear(self.input_size, c)
+      self.interpolation_gate_transform = nn.Linear(self.input_size, self.c)
       self.write_gate_transform = nn.Linear(self.input_size, 1)
       T.nn.init.orthogonal(self.read_query_transform.weight)
       T.nn.init.orthogonal(self.write_vector_transform.weight)
       T.nn.init.orthogonal(self.interpolation_gate_transform.weight)
       T.nn.init.orthogonal(self.write_gate_transform.weight)
     else:
-      self.interface_size = (r * w) + w + c + 1
+      self.interface_size = (r * w) + w + self.c + 1
       self.interface_weights = nn.Linear(self.input_size, self.interface_size)
       T.nn.init.orthogonal(self.interface_weights.weight)
 
-    self.I = cuda(1 - T.eye(c).unsqueeze(0), gpu_id=self.gpu_id)  # (1 * n * n)
+    self.I = cuda(1 - T.eye(self.c).unsqueeze(0), gpu_id=self.gpu_id)  # (1 * n * n)
     self.δ = 0.005  # minimum usage
     self.timestep = 0
 
@@ -93,7 +95,7 @@ class SparseMemory(nn.Module):
     w = self.cell_size
     b = batch_size
     r = self.read_heads
-    c = r * self.K + 1
+    c = self.c
 
     if hidden is None:
       hidden = {
@@ -146,7 +148,7 @@ class SparseMemory(nn.Module):
 
     (b, m, w) = hidden['memory'].size()
     # update memory
-    hidden['memory'].scatter_(1, positions.unsqueeze(2).expand(b, self.read_heads*self.K+1, w), visible_memory)
+    hidden['memory'].scatter_(1, positions.unsqueeze(2).expand(b, self.c, w), visible_memory)
 
     # non-differentiable operations
     pos = positions.data.cpu().numpy()
@@ -203,7 +205,7 @@ class SparseMemory(nn.Module):
 
     hidden['link_matrix'], hidden['rev_link_matrix'] = \
       self.update_link_matrices(hidden['link_matrix'], hidden['rev_link_matrix'], write_weights, precedence)
-    precedence = self.update_precedence(hidden['precedence'], hidden['write_weights'])
+    precedence = self.update_precedence(precedence, write_weights)
 
     hidden['precedence'].scatter_(1, hidden['read_positions'], precedence)
 
@@ -230,7 +232,13 @@ class SparseMemory(nn.Module):
 
     return usage, I
 
-  def read_from_sparse_memory(self, memory, indexes, keys, least_used_mem, usage):
+  def directional_weightings(self, link_matrix, rev_link_matrix, read_weights):
+
+    f = T.bmm(link_matrix, read_weights.unsqueeze(2)).squeeze()
+    b = T.bmm(read_weights.unsqueeze(1), rev_link_matrix).squeeze()
+    return f, b
+
+  def read_from_sparse_memory(self, memory, indexes, keys, least_used_mem, usage, forward, backward, prev_read_positions):
     b = keys.size(0)
     read_positions = []
 
@@ -243,12 +251,24 @@ class SparseMemory(nn.Module):
     # add least used mem to read positions
     # TODO: explore possibility of reading co-locations or ranges and such
     (b, r, k) = read_positions.size()
-    read_positions = var(read_positions)
-    read_positions = T.cat([read_positions.view(b, -1), least_used_mem], 1)
+    read_positions = var(read_positions).squeeze(1).view(b, -1)
 
     # differentiable ops
+    # temporal reads,
+    # TODO: this results in duplicate reads when the content based positions and temporal ones are same
     (b, m, w) = memory.size()
-    visible_memory = memory.gather(1, read_positions.unsqueeze(2).expand(b, r*k+1, w))
+    # get the top KL entries
+    _, fp = T.topk(forward, self.KL, largest=True)
+    _, bp = T.topk(backward, self.KL, largest=True)
+    # get read positions for those entries
+    fpos = prev_read_positions.gather(1, fp)
+    bpos = prev_read_positions.gather(1, bp)
+
+    # append forward and backward read positions, might lead to duplicates
+    read_positions = T.cat([read_positions, fpos, bpos], 1)
+    read_positions = T.cat([read_positions, least_used_mem], 1)
+
+    visible_memory = memory.gather(1, read_positions.unsqueeze(2).expand(b, self.c, w))
 
     read_weights = σ(θ(visible_memory, keys), 2)
     read_vectors = T.bmm(read_weights, visible_memory)
@@ -256,9 +276,11 @@ class SparseMemory(nn.Module):
 
     return read_vectors, read_positions, read_weights, visible_memory
 
-  # def
-
   def read(self, read_query, hidden):
+    # get forward and backward weights
+    read_weights = hidden['read_weights'].gather(1, hidden['read_positions'])
+    forward, backward = self.directional_weightings(hidden['link_matrix'], hidden['rev_link_matrix'], read_weights)
+
     # sparse read
     read_vectors, positions, read_weights, visible_memory = \
         self.read_from_sparse_memory(
@@ -266,7 +288,9 @@ class SparseMemory(nn.Module):
           hidden['indexes'],
           read_query,
           hidden['least_used_mem'],
-          hidden['usage']
+          hidden['usage'],
+          forward, backward,
+          hidden['read_positions']
         )
 
     hidden['read_positions'] = positions
@@ -283,7 +307,7 @@ class SparseMemory(nn.Module):
     m = self.mem_size
     w = self.cell_size
     r = self.read_heads
-    c = r * self.K + 1
+    c = self.c
     b = ξ.size()[0]
 
     if self.independent_linears:

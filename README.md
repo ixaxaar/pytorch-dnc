@@ -166,7 +166,8 @@ Following are the constructor parameters:
 | bidirectional | `False` | If the controller is bidirectional (Not yet implemented |
 | nr_cells | `5000` | Number of memory cells |
 | read_heads | `4` | Number of read heads |
-| sparse_reads | `10` | Number of sparse memory reads per read head |
+| sparse_reads | `4` | Number of sparse memory reads per read head |
+| temporal_reads | `4` | Number of temporal reads |
 | cell_size | `10` | Size of each memory cell |
 | nonlinearity | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
 | gpu_id | `-1` | ID of the GPU, -1 for CPU |
@@ -226,6 +227,7 @@ rnn = SDNC(
   read_heads=4,
   batch_first=True,
   sparse_reads=4,
+  temporal_reads=4,
   gpu_id=0,
   debug=True
 )
@@ -241,8 +243,11 @@ Memory vectors returned by forward pass (`np.ndarray`):
 | Key | Y axis (dimensions) | X axis (dimensions) |
 | --- | --- | --- |
 | `debug_memory['memory']` | layer * time | nr_cells * cell_size
-| `debug_memory['visible_memory']` | layer * time | sparse_reads+1 * nr_cells
-| `debug_memory['read_positions']` | layer * time | sparse_reads+1
+| `debug_memory['visible_memory']` | layer * time | sparse_reads+2*temporal_reads+1 * nr_cells
+| `debug_memory['read_positions']` | layer * time | sparse_reads+2*temporal_reads+1
+| `debug_memory['link_matrix']` | layer * time | sparse_reads+2*temporal_reads+1 * sparse_reads+2*temporal_reads+1
+| `debug_memory['rev_link_matrix']` | layer * time | sparse_reads+2*temporal_reads+1 * sparse_reads+2*temporal_reads+1
+| `debug_memory['precedence']` | layer * time | nr_cells
 | `debug_memory['read_weights']` | layer * time | read_heads * nr_cells
 | `debug_memory['write_weights']` | layer * time | nr_cells
 | `debug_memory['usage']` | layer * time | nr_cells
@@ -261,7 +266,7 @@ For SDNCs:
 python3 -B ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -memory_type sdnc -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 100 -mem_size 10  -read_heads 1 -sparse_reads 10 -batch_size 20 -optim adam -sequence_max_length 10
 
 and for curriculum learning for SDNCs:
-python3 -B ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -memory_type sdnc -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 100 -mem_size 10  -read_heads 1 -sparse_reads 4 -batch_size 20 -optim adam -sequence_max_length 4 -curriculum_increment 2 -curriculum_freq 10000
+python3 -B ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -memory_type sdnc -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 100 -mem_size 10  -read_heads 1 -sparse_reads 4 -temporal_reads 4 -batch_size 20 -optim adam -sequence_max_length 4 -curriculum_increment 2 -curriculum_freq 10000
 ```
 
 For the full set of options, see:

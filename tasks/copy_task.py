@@ -44,6 +44,7 @@ parser.add_argument('-mem_size', type=int, default=20, help='memory dimension')
 parser.add_argument('-mem_slot', type=int, default=16, help='number of memory slots')
 parser.add_argument('-read_heads', type=int, default=4, help='number of read heads')
 parser.add_argument('-sparse_reads', type=int, default=10, help='number of sparse reads per read head')
+parser.add_argument('-temporal_reads', type=int, default=2, help='number of temporal reads')
 
 parser.add_argument('-sequence_max_length', type=int, default=4, metavar='N', help='sequence_max_length')
 parser.add_argument('-curriculum_increment', type=int, default=0, metavar='N', help='sequence_max_length incrementor per 1K iterations')
@@ -143,6 +144,7 @@ if __name__ == '__main__':
         nr_cells=mem_slot,
         cell_size=mem_size,
         sparse_reads=args.sparse_reads,
+        temporal_reads=args.temporal_reads,
         read_heads=args.read_heads,
         gpu_id=args.cuda,
         debug=True,
@@ -249,17 +251,39 @@ if __name__ == '__main__':
                 xlabel='mem_slot'
             )
         )
-
+      else:
         viz.heatmap(
-            v['precedence'],
+            v['link_matrix'],
             opts=dict(
                 xtickstep=10,
                 ytickstep=2,
-                title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
-                ylabel='layer * time',
+                title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
+                ylabel='mem_slot',
                 xlabel='mem_slot'
             )
         )
+
+        viz.heatmap(
+            v['rev_link_matrix'],
+            opts=dict(
+                xtickstep=10,
+                ytickstep=2,
+                title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
+                ylabel='mem_slot',
+                xlabel='mem_slot'
+            )
+        )
+
+      viz.heatmap(
+          v['precedence'],
+          opts=dict(
+              xtickstep=10,
+              ytickstep=2,
+              title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
+              ylabel='layer * time',
+              xlabel='mem_slot'
+          )
+      )
 
       if args.memory_type == 'sdnc':
         viz.heatmap(
