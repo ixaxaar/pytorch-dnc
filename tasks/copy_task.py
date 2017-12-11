@@ -147,7 +147,7 @@ if __name__ == '__main__':
         temporal_reads=args.temporal_reads,
         read_heads=args.read_heads,
         gpu_id=args.cuda,
-        debug=True,
+        debug=False,
         batch_first=True,
         independent_linears=False
     )
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 
     last_save_losses.append(loss_value)
 
-    if summarize and rnn.debug:
+    if summarize:
       loss = np.mean(last_save_losses)
       # print(input_data)
       # print("1111111111111111111111111111111111111111111111")
@@ -229,16 +229,17 @@ if __name__ == '__main__':
       # print(F.relu6(output))
       last_save_losses = []
 
-      viz.heatmap(
-          v['memory'],
-          opts=dict(
-              xtickstep=10,
-              ytickstep=2,
-              title='Memory, t: ' + str(epoch) + ', loss: ' + str(loss),
-              ylabel='layer * time',
-              xlabel='mem_slot * mem_size'
-          )
-      )
+      if args.memory_type == 'dnc':
+        viz.heatmap(
+            v['memory'],
+            opts=dict(
+                xtickstep=10,
+                ytickstep=2,
+                title='Memory, t: ' + str(epoch) + ', loss: ' + str(loss),
+                ylabel='layer * time',
+                xlabel='mem_slot * mem_size'
+            )
+        )
 
       if args.memory_type == 'dnc':
         viz.heatmap(
