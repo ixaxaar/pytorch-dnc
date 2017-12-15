@@ -37,7 +37,7 @@ class FLANNIndex(object):
     elif isinstance(query, T.Tensor):
       query = query.cpu().numpy()
 
-    l, d = self.index.nn_index(query, num_neighbors=self.K if k is None else k)
+    l, d = self.index.nn_index(query, num_neighbors=self.K if k is None else k, cores=4)
 
     distances = T.from_numpy(d).float()
     labels = T.from_numpy(l).long()
