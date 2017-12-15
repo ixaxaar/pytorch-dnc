@@ -296,9 +296,25 @@ The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_fre
 
 ## General noteworthy stuff
 
-1. DNCs converge faster with Adam and RMSProp learning rules, SGD generally converges extremely slowly.
+1. SDNCs use the [FLANN approximate nearest library](https://www.cs.ubc.ca/research/flann/), with its python binding [pyflann3](https://github.com/primetang/pyflann).
+
+FLANN can be installed either from pip (automatically as a dependency), or from source (e.g. for multithreading via OpenMP):
+
+```bash
+# install openmp first: e.g. `sudo pacman -S openmp` for Arch.
+git clone git://github.com/mariusmuja/flann.git
+cd flann
+mkdir build
+cd build
+cmake ..
+make -j 4
+sudo make install
+```
+
+2. An alternative to FLANN is [FAISS](https://github.com/facebookresearch/faiss), which is much faster and interoperable with torch cuda tensors (but is difficult to distribute, see [dnc/faiss_index.py](dnc/faiss_index.py)).
+3. DNCs converge faster with Adam and RMSProp learning rules, SGD generally converges extremely slowly.
 The copy task, for example, takes 25k iterations on SGD with lr 1 compared to 3.5k for adam with lr 0.01.
-2. `nan`s in the gradients are common, try with different batch sizes
+4. `nan`s in the gradients are common, try with different batch sizes
 
 Repos referred to for creation of this repo:
 

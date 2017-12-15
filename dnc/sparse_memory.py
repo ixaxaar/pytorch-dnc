@@ -255,7 +255,7 @@ class SparseMemory(nn.Module):
     # we search for k cells per read head
     for batch in range(b):
       distances, positions = indexes[batch].search(keys[batch])
-      read_positions.append(T.clamp(positions, 0, self.mem_size - 1))
+      read_positions.append(positions)
     read_positions = T.stack(read_positions, 0)
 
     # add least used mem to read positions
@@ -275,6 +275,7 @@ class SparseMemory(nn.Module):
     # append forward and backward read positions, might lead to duplicates
     read_positions = T.cat([read_positions, fp, bp], 1)
     read_positions = T.cat([read_positions, least_used_mem], 1)
+    read_positions = T.clamp(read_positions, 0, max_length)
 
     visible_memory = memory.gather(1, read_positions.unsqueeze(2).expand(b, self.c, w))
 
