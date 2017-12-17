@@ -3,3 +3,5 @@
 
 from .dnc import DNC
 from .sdnc import SDNC
+from .dnc import Memory
+from .sdnc import SparseMemory
