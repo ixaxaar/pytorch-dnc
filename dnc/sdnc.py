@@ -29,7 +29,8 @@ class SDNC(nn.Module):
       dropout=0,
       bidirectional=False,
       nr_cells=5000,
-      sparse_reads=10,
+      sparse_reads=4,
+      temporal_reads=4,
       read_heads=4,
       cell_size=10,
       nonlinearity='tanh',
@@ -53,6 +54,7 @@ class SDNC(nn.Module):
     self.bidirectional = bidirectional
     self.nr_cells = nr_cells
     self.sparse_reads = sparse_reads
+    self.temporal_reads = temporal_reads
     self.read_heads = read_heads
     self.cell_size = cell_size
     self.nonlinearity = nonlinearity
@@ -95,6 +97,7 @@ class SDNC(nn.Module):
                 cell_size=self.w,
                 sparse_reads=self.sparse_reads,
                 read_heads=self.read_heads,
+                temporal_reads=self.temporal_reads,
                 gpu_id=self.gpu_id,
                 mem_gpu_id=self.gpu_id,
                 independent_linears=self.independent_linears
@@ -111,6 +114,7 @@ class SDNC(nn.Module):
               cell_size=self.w,
               sparse_reads=self.sparse_reads,
               read_heads=self.read_heads,
+              temporal_reads=self.temporal_reads,
               gpu_id=self.gpu_id,
               mem_gpu_id=self.gpu_id,
               independent_linears=self.independent_linears
@@ -162,6 +166,9 @@ class SDNC(nn.Module):
       debug_obj = {
           'memory': [],
           'visible_memory': [],
+          'link_matrix': [],
+          'rev_link_matrix': [],
+          'precedence': [],
           'read_weights': [],
           'write_weights': [],
           'read_vectors': [],
@@ -172,6 +179,9 @@ class SDNC(nn.Module):
 
     debug_obj['memory'].append(mhx['memory'][0].data.cpu().numpy())
     debug_obj['visible_memory'].append(mhx['visible_memory'][0].data.cpu().numpy())
+    debug_obj['link_matrix'].append(mhx['link_matrix'][0].data.cpu().numpy())
+    debug_obj['rev_link_matrix'].append(mhx['rev_link_matrix'][0].data.cpu().numpy())
+    debug_obj['precedence'].append(mhx['precedence'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['read_weights'].append(mhx['read_weights'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['write_weights'].append(mhx['write_weights'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['read_vectors'].append(mhx['read_vectors'][0].data.cpu().numpy())
