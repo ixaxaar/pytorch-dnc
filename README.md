@@ -312,9 +312,7 @@ sudo make install
 ```
 
 2. An alternative to FLANN is [FAISS](https://github.com/facebookresearch/faiss), which is much faster and interoperable with torch cuda tensors (but is difficult to distribute, see [dnc/faiss_index.py](dnc/faiss_index.py)).
-3. DNCs converge faster with Adam and RMSProp learning rules, SGD generally converges extremely slowly.
-The copy task, for example, takes 25k iterations on SGD with lr 1 compared to 3.5k for adam with lr 0.01.
-4. `nan`s in the gradients are common, try with different batch sizes
+3. `nan`s in the gradients are common, try with different batch sizes
 
 Repos referred to for creation of this repo:
 
