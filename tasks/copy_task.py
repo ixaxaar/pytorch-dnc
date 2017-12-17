@@ -254,7 +254,7 @@ if __name__ == '__main__':
         )
       else:
         viz.heatmap(
-            v['link_matrix'],
+            v['link_matrix'][-1].reshape(args.mem_slot, -1),
             opts=dict(
                 xtickstep=10,
                 ytickstep=2,
@@ -265,11 +265,11 @@ if __name__ == '__main__':
         )
 
         viz.heatmap(
-            v['rev_link_matrix'],
+            v['rev_link_matrix'][-1].reshape(args.mem_slot, -1),
             opts=dict(
                 xtickstep=10,
                 ytickstep=2,
-                title='Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
+                title='Reverse Link Matrix, t: ' + str(epoch) + ', loss: ' + str(loss),
                 ylabel='mem_slot',
                 xlabel='mem_slot'
             )
