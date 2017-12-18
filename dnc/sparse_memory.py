@@ -134,7 +134,7 @@ class SparseMemory(nn.Module):
 
   def write_into_sparse_memory(self, hidden):
     visible_memory = hidden['visible_memory']
-    positions = hidden['read_positions'].squeeze()
+    positions = hidden['read_positions']
 
     (b, m, w) = hidden['memory'].size()
     # update memory
