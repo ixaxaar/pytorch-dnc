@@ -22,7 +22,10 @@ Includes:
   - [SAM](#sam)
     - [Example usage](#example-usage-2)
     - [Debugging](#debugging-2)
-- [Example copy task](#example-copy-task)
+- [Tasks](#tasks)
+  - [Copy task](#copy-task)
+  - [Generalizing Addition task](#generalizing-addition-task)
+  - [Generalizing Addition task v2](#generalizing-addition-task-v2)
 - [Code Structure](#code-structure)
 - [General noteworthy stuff](#general-noteworthy-stuff)
 
