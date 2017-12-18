@@ -23,6 +23,7 @@ Includes:
     - [Example usage](#example-usage-2)
     - [Debugging](#debugging-2)
 - [Example copy task](#example-copy-task)
+- [Code Structure](#code-structure)
 - [General noteworthy stuff](#general-noteworthy-stuff)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -402,6 +403,21 @@ The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_fre
 
 ![Visdom dashboard](./docs/dnc-mem-debug.png)
 
+## Code Structure
+
+1. DNCs:
+  - [dnc/dnc.py](dnc/dnc.py) - Controller code.
+  - [dnc/memory.py](dnc/memory.py) - Memory module.
+2. SDNCs:
+  - [dnc/sdnc.py](dnc/sdnc.py) - Controller code, inherits [dnc.py](dnc/dnc.py).
+  - [dnc/sparse_temporal_memory.py](dnc/sparse_temporal_memory.py) - Memory module.
+  - [dnc/flann_index.py](dnc/flann_index.py) - Memory index using kNN.
+3. SAMs:
+  - [dnc/sam.py](dnc/sam.py) - Controller code, inherits [dnc.py](dnc/dnc.py).
+  - [dnc/sparse_memory.py](dnc/sparse_memory.py) - Memory module.
+  - [dnc/flann_index.py](dnc/flann_index.py) - Memory index using kNN.
+4. Tests:
+  - All tests are in [./tests](./tests) folder.
 
 ## General noteworthy stuff
 
