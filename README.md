@@ -14,14 +14,14 @@ Includes:
 - [Architecure](#architecure)
 - [Usage](#usage)
   - [DNC](#dnc)
-    - [Example usage:](#example-usage)
-    - [Debugging:](#debugging)
+    - [Example usage](#example-usage)
+    - [Debugging](#debugging)
   - [SDNC](#sdnc)
-    - [Example usage:](#example-usage-1)
-    - [Debugging:](#debugging-1)
+    - [Example usage](#example-usage-1)
+    - [Debugging](#debugging-1)
   - [SAM](#sam)
-    - [Example usage:](#example-usage-2)
-    - [Debugging:](#debugging-2)
+    - [Example usage](#example-usage-2)
+    - [Debugging](#debugging-2)
 - [Example copy task](#example-copy-task)
 - [General noteworthy stuff](#general-noteworthy-stuff)
 
@@ -92,7 +92,7 @@ Following are the forward pass parameters:
 | pass_through_memory | `True` | Whether to pass through memory |
 
 
-#### Example usage:
+#### Example usage
 
 ```python
 from dnc import DNC
@@ -116,7 +116,7 @@ output, (controller_hidden, memory, read_vectors) = \
 ```
 
 
-#### Debugging:
+#### Debugging
 
 The `debug` option causes the network to return its memory hidden vectors (numpy `ndarray`s) for the first batch each forward step.
 These vectors can be analyzed or visualized, using visdom for example.
@@ -192,7 +192,7 @@ Following are the forward pass parameters:
 | pass_through_memory | `True` | Whether to pass through memory |
 
 
-#### Example usage:
+#### Example usage
 
 ```python
 from dnc import SDNC
@@ -217,7 +217,7 @@ output, (controller_hidden, memory, read_vectors) = \
 ```
 
 
-#### Debugging:
+#### Debugging
 
 The `debug` option causes the network to return its memory hidden vectors (numpy `ndarray`s) for the first batch each forward step.
 These vectors can be analyzed or visualized, using visdom for example.
@@ -296,7 +296,7 @@ Following are the forward pass parameters:
 | pass_through_memory | `True` | Whether to pass through memory |
 
 
-#### Example usage:
+#### Example usage
 
 ```python
 from dnc import SAM
@@ -321,7 +321,7 @@ output, (controller_hidden, memory, read_vectors) = \
 ```
 
 
-#### Debugging:
+#### Debugging
 
 The `debug` option causes the network to return its memory hidden vectors (numpy `ndarray`s) for the first batch each forward step.
 These vectors can be analyzed or visualized, using visdom for example.
