@@ -50,7 +50,7 @@ parser.add_argument('-temporal_reads', type=int, default=2, help='number of temp
 parser.add_argument('-sequence_max_length', type=int, default=4, metavar='N', help='sequence_max_length')
 parser.add_argument('-cuda', type=int, default=-1, help='Cuda GPU ID, -1 for CPU')
 
-parser.add_argument('-iterations', type=int, default=1000, metavar='N', help='total number of iteration')
+parser.add_argument('-iterations', type=int, default=2000, metavar='N', help='total number of iteration')
 parser.add_argument('-summarize_freq', type=int, default=100, metavar='N', help='summarize frequency')
 parser.add_argument('-check_freq', type=int, default=100, metavar='N', help='check point frequency')
 parser.add_argument('-visdom', action='store_true', help='plot memory content on visdom per -summarize_freq steps')
