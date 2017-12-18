@@ -24,6 +24,7 @@ from torch.nn.utils import clip_grad_norm
 
 from dnc.dnc import DNC
 from dnc.sdnc import SDNC
+from dnc.sam import SAM
 from dnc.util import *
 
 parser = argparse.ArgumentParser(description='PyTorch Differentiable Neural Computer')
@@ -31,7 +32,7 @@ parser.add_argument('-input_size', type=int, default=6, help='dimension of input
 parser.add_argument('-rnn_type', type=str, default='lstm', help='type of recurrent cells to use for the controller')
 parser.add_argument('-nhid', type=int, default=64, help='number of hidden units of the inner nn')
 parser.add_argument('-dropout', type=float, default=0, help='controller dropout')
-parser.add_argument('-memory_type', type=str, default='dnc', help='dense or sparse memory')
+parser.add_argument('-memory_type', type=str, default='dnc', help='dense or sparse memory: dnc | sdnc | sam')
 
 parser.add_argument('-nlayer', type=int, default=1, help='number of layers')
 parser.add_argument('-nhlayer', type=int, default=2, help='number of hidden layers')
@@ -55,6 +56,7 @@ parser.add_argument('-log-interval', type=int, default=200, metavar='N', help='r
 parser.add_argument('-iterations', type=int, default=100000, metavar='N', help='total number of iteration')
 parser.add_argument('-summarize_freq', type=int, default=100, metavar='N', help='summarize frequency')
 parser.add_argument('-check_freq', type=int, default=100, metavar='N', help='check point frequency')
+parser.add_argument('-visdom', action='store_true', help='plot memory content on visdom per -summarize_freq steps')
 
 args = parser.parse_args()
 print(args)
@@ -129,7 +131,7 @@ if __name__ == '__main__':
         cell_size=mem_size,
         read_heads=read_heads,
         gpu_id=args.cuda,
-        debug=True,
+        debug=args.visdom,
         batch_first=True,
         independent_linears=True
     )
@@ -147,7 +149,24 @@ if __name__ == '__main__':
         temporal_reads=args.temporal_reads,
         read_heads=args.read_heads,
         gpu_id=args.cuda,
-        debug=False,
+        debug=args.visdom,
+        batch_first=True,
+        independent_linears=False
+    )
+  elif args.memory_type == 'sam':
+    rnn = SAM(
+        input_size=args.input_size,
+        hidden_size=args.nhid,
+        rnn_type=args.rnn_type,
+        num_layers=args.nlayer,
+        num_hidden_layers=args.nhlayer,
+        dropout=args.dropout,
+        nr_cells=mem_slot,
+        cell_size=mem_size,
+        sparse_reads=args.sparse_reads,
+        read_heads=args.read_heads,
+        gpu_id=args.cuda,
+        debug=args.visdom,
         batch_first=True,
         independent_linears=False
     )
@@ -252,7 +271,7 @@ if __name__ == '__main__':
                 xlabel='mem_slot'
             )
         )
-      else:
+      elif args.memory_type == 'sdnc':
         viz.heatmap(
             v['link_matrix'][-1].reshape(args.mem_slot, -1),
             opts=dict(
@@ -275,16 +294,17 @@ if __name__ == '__main__':
             )
         )
 
-      viz.heatmap(
-          v['precedence'],
-          opts=dict(
-              xtickstep=10,
-              ytickstep=2,
-              title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
-              ylabel='layer * time',
-              xlabel='mem_slot'
-          )
-      )
+      elif args.memory_type == 'sdnc' or args.memory_type == 'dnc':
+        viz.heatmap(
+            v['precedence'],
+            opts=dict(
+                xtickstep=10,
+                ytickstep=2,
+                title='Precedence, t: ' + str(epoch) + ', loss: ' + str(loss),
+                ylabel='layer * time',
+                xlabel='mem_slot'
+            )
+        )
 
       if args.memory_type == 'sdnc':
         viz.heatmap(
