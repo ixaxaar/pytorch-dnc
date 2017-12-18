@@ -65,7 +65,6 @@ class DNC(nn.Module):
     self.r = self.read_heads
 
     self.read_vectors_size = self.r * self.w
-    self.interface_size = self.read_vectors_size + (3 * self.w) + (5 * self.r) + 3
     self.output_size = self.hidden_size
 
     self.nn_input_size = self.input_size + self.read_vectors_size
