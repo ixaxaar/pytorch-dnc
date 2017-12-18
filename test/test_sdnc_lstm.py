@@ -36,6 +36,7 @@ def test_rnn_1():
   cell_size = 10
   read_heads = 1
   sparse_reads = 2
+  temporal_reads = 1
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -56,6 +57,7 @@ def test_rnn_1():
       cell_size=cell_size,
       read_heads=read_heads,
       sparse_reads=sparse_reads,
+      temporal_reads=temporal_reads,
       gpu_id=gpu_id,
       debug=debug
   )
@@ -94,6 +96,7 @@ def test_rnn_n():
   cell_size = 17
   read_heads = 2
   sparse_reads = 4
+  temporal_reads = 3
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -114,6 +117,7 @@ def test_rnn_n():
       cell_size=cell_size,
       read_heads=read_heads,
       sparse_reads=sparse_reads,
+      temporal_reads=temporal_reads,
       gpu_id=gpu_id,
       debug=debug
   )
@@ -151,6 +155,7 @@ def test_rnn_no_memory_pass():
   nr_cells = 5000
   cell_size = 17
   sparse_reads = 3
+  temporal_reads = 4
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -170,6 +175,7 @@ def test_rnn_no_memory_pass():
       nr_cells=nr_cells,
       cell_size=cell_size,
       sparse_reads=sparse_reads,
+      temporal_reads=temporal_reads,
       gpu_id=gpu_id,
       debug=debug
   )

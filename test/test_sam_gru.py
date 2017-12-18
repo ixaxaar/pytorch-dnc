@@ -19,7 +19,7 @@ import time
 import functools
 sys.path.insert(0, '.')
 
-from dnc import SDNC
+from dnc import SAM
 from test_utils import generate_data, criterion
 
 
@@ -36,7 +36,6 @@ def test_rnn_1():
   cell_size = 10
   read_heads = 1
   sparse_reads = 2
-  temporal_reads = 1
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -46,7 +45,7 @@ def test_rnn_1():
   clip = 10
   length = 10
 
-  rnn = SDNC(
+  rnn = SAM(
       input_size=input_size,
       hidden_size=hidden_size,
       rnn_type=rnn_type,
@@ -57,7 +56,6 @@ def test_rnn_1():
       cell_size=cell_size,
       read_heads=read_heads,
       sparse_reads=sparse_reads,
-      temporal_reads=temporal_reads,
       gpu_id=gpu_id,
       debug=debug
   )
@@ -96,7 +94,6 @@ def test_rnn_n():
   cell_size = 17
   read_heads = 2
   sparse_reads = 4
-  temporal_reads = 3
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -106,7 +103,7 @@ def test_rnn_n():
   clip = 20
   length = 13
 
-  rnn = SDNC(
+  rnn = SAM(
       input_size=input_size,
       hidden_size=hidden_size,
       rnn_type=rnn_type,
@@ -117,7 +114,6 @@ def test_rnn_n():
       cell_size=cell_size,
       read_heads=read_heads,
       sparse_reads=sparse_reads,
-      temporal_reads=temporal_reads,
       gpu_id=gpu_id,
       debug=debug
   )
@@ -155,7 +151,6 @@ def test_rnn_no_memory_pass():
   nr_cells = 5000
   cell_size = 17
   sparse_reads = 3
-  temporal_reads = 4
   gpu_id = -1
   debug = True
   lr = 0.001
@@ -165,7 +160,7 @@ def test_rnn_no_memory_pass():
   clip = 20
   length = 13
 
-  rnn = SDNC(
+  rnn = SAM(
       input_size=input_size,
       hidden_size=hidden_size,
       rnn_type=rnn_type,
@@ -175,7 +170,6 @@ def test_rnn_no_memory_pass():
       nr_cells=nr_cells,
       cell_size=cell_size,
       sparse_reads=sparse_reads,
-      temporal_reads=temporal_reads,
       gpu_id=gpu_id,
       debug=debug
   )

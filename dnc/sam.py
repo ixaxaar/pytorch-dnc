@@ -12,11 +12,12 @@ from torch.nn.utils.rnn import PackedSequence
 from torch.nn.init import orthogonal, xavier_uniform
 
 from .util import *
-from .sparse_temporal_memory import SparseTemporalMemory
+from .sparse_memory import SparseMemory
+
 from .dnc import DNC
 
 
-class SDNC(DNC):
+class SAM(DNC):
 
   def __init__(
       self,
@@ -31,7 +32,6 @@ class SDNC(DNC):
       bidirectional=False,
       nr_cells=5000,
       sparse_reads=4,
-      temporal_reads=4,
       read_heads=4,
       cell_size=10,
       nonlinearity='tanh',
@@ -41,7 +41,8 @@ class SDNC(DNC):
       debug=False,
       clip=20
   ):
-    super(SDNC, self).__init__(
+
+    super(SAM, self).__init__(
         input_size=input_size,
         hidden_size=hidden_size,
         rnn_type=rnn_type,
@@ -61,23 +62,21 @@ class SDNC(DNC):
         debug=debug,
         clip=clip
     )
-
     self.sparse_reads = sparse_reads
-    self.temporal_reads = temporal_reads
 
+    # override SDNC memories with SAM
     self.memories = []
 
     for layer in range(self.num_layers):
       # memories for each layer
       if not self.share_memory:
         self.memories.append(
-            SparseTemporalMemory(
+            SparseMemory(
                 input_size=self.output_size,
                 mem_size=self.nr_cells,
                 cell_size=self.w,
                 sparse_reads=self.sparse_reads,
                 read_heads=self.read_heads,
-                temporal_reads=self.temporal_reads,
                 gpu_id=self.gpu_id,
                 mem_gpu_id=self.gpu_id,
                 independent_linears=self.independent_linears
@@ -88,13 +87,12 @@ class SDNC(DNC):
     # only one memory shared by all layers
     if self.share_memory:
       self.memories.append(
-          SparseTemporalMemory(
+          SparseMemory(
               input_size=self.output_size,
               mem_size=self.nr_cells,
               cell_size=self.w,
               sparse_reads=self.sparse_reads,
               read_heads=self.read_heads,
-              temporal_reads=self.temporal_reads,
               gpu_id=self.gpu_id,
               mem_gpu_id=self.gpu_id,
               independent_linears=self.independent_linears
@@ -107,9 +105,6 @@ class SDNC(DNC):
       debug_obj = {
           'memory': [],
           'visible_memory': [],
-          'link_matrix': [],
-          'rev_link_matrix': [],
-          'precedence': [],
           'read_weights': [],
           'write_weights': [],
           'read_vectors': [],
@@ -120,9 +115,6 @@ class SDNC(DNC):
 
     debug_obj['memory'].append(mhx['memory'][0].data.cpu().numpy())
     debug_obj['visible_memory'].append(mhx['visible_memory'][0].data.cpu().numpy())
-    debug_obj['link_matrix'].append(mhx['link_matrix'][0].data.cpu().numpy())
-    debug_obj['rev_link_matrix'].append(mhx['rev_link_matrix'][0].data.cpu().numpy())
-    debug_obj['precedence'].append(mhx['precedence'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['read_weights'].append(mhx['read_weights'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['write_weights'].append(mhx['write_weights'][0].unsqueeze(0).data.cpu().numpy())
     debug_obj['read_vectors'].append(mhx['read_vectors'][0].data.cpu().numpy())
@@ -131,4 +123,3 @@ class SDNC(DNC):
     debug_obj['read_positions'].append(mhx['read_positions'][0].unsqueeze(0).data.cpu().numpy())
 
     return debug_obj
-
