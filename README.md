@@ -362,7 +362,9 @@ Memory vectors returned by forward pass (`np.ndarray`):
 | `debug_memory['usage']` | layer * time | nr_cells
 
 
-## Example copy task
+## Tasks
+
+### Copy task
 
 The copy task, as descibed in the original paper, is included in the repo.
 
@@ -402,6 +404,29 @@ python ./tasks/copy_task.py -cuda 0
 The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_freq` iteration:
 
 ![Visdom dashboard](./docs/dnc-mem-debug.png)
+
+### Generalizing Addition task
+
+The adding task is as described in [this github pull request](https://github.com/Mostafa-Samir/DNC-tensorflow/pull/4#issue-199369192).
+This task
+- creates one-hot vectors of size `input_size`, each representing a number
+- feeds a sentence of them to a network
+- the output of which is added to get the sum of the decoded outputs
+
+The task first trains the network for sentences of size ~100, and then tests if the network genetalizes for lengths ~1000.
+
+```bash
+python3 -B ./tasks/adding_task.py -cuda 0 -lr 0.0001 -rnn_type lstm -memory_type sam -nlayer 1 -nhlayer 1 -nhid 100 -dropout 0 -mem_slot 1000 -mem_size 32 -read_heads 1 -sparse_reads 4 -batch_size 20 -optim rmsprop -input_size 3 -sequence_max_length 1000
+```
+
+### Generalizing Addition task v2
+
+The second adding task is similar to the first one, except that the network's output at the last time step is used for loss calculation, forcing the network to learn to add.
+
+```bash
+python3 -B ./tasks/adding_task_v2.py -cuda 0 -lr 0.0001 -rnn_type lstm -memory_type sam -nlayer 1 -nhlayer 1 -nhid 100 -dropout 0 -mem_slot 1000 -mem_size 32 -read_heads 1 -sparse_reads 4 -batch_size 20 -optim rmsprop -input_size 3 -sequence_max_length 1000
+```
+
 
 ## Code Structure
 

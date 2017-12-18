@@ -51,7 +51,6 @@ parser.add_argument('-sequence_max_length', type=int, default=4, metavar='N', he
 parser.add_argument('-curriculum_increment', type=int, default=0, metavar='N', help='sequence_max_length incrementor per 1K iterations')
 parser.add_argument('-curriculum_freq', type=int, default=1000, metavar='N', help='sequence_max_length incrementor per 1K iterations')
 parser.add_argument('-cuda', type=int, default=-1, help='Cuda GPU ID, -1 for CPU')
-parser.add_argument('-log-interval', type=int, default=200, metavar='N', help='report interval')
 
 parser.add_argument('-iterations', type=int, default=100000, metavar='N', help='total number of iteration')
 parser.add_argument('-summarize_freq', type=int, default=100, metavar='N', help='summarize frequency')
@@ -183,9 +182,7 @@ if __name__ == '__main__':
 
   if args.optim == 'adam':
     optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
-  if args.optim == 'sparseadam':
-    optimizer = optim.SparseAdam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
-  if args.optim == 'adamax':
+  elif args.optim == 'adamax':
     optimizer = optim.Adamax(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
   elif args.optim == 'rmsprop':
     optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10) # 0.0001
