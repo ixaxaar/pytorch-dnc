@@ -214,7 +214,6 @@ if __name__ == '__main__':
     else:
       output, (chx, mhx, rv) = rnn(input_data, (None, mhx, None), reset_experience=True, pass_through_memory=True)
 
-    # print(.size(), target_output.size())
     output = output.sum(dim=2, keepdim=True).sum(dim=1, keepdim=True)
     loss = cross_entropy(output, target_output)
 

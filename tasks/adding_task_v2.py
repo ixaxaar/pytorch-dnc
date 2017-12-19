@@ -220,7 +220,7 @@ if __name__ == '__main__':
     else:
       output, (chx, mhx, rv) = rnn(input_data, (None, mhx, None), reset_experience=True, pass_through_memory=True)
 
-    loss = T.mean((output[:, -1, :].sum() - target_output.sum()) ** 2, dim=-1)
+    loss = T.mean(((loss_weights * output).sum(-1, keepdim=True) - target_output) ** 2)
 
     loss.backward()
 

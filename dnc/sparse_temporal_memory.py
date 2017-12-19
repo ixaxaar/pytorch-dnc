@@ -145,7 +145,7 @@ class SparseTemporalMemory(nn.Module):
 
   def write_into_sparse_memory(self, hidden):
     visible_memory = hidden['visible_memory']
-    positions = hidden['read_positions'].squeeze()
+    positions = hidden['read_positions']
 
     (b, m, w) = hidden['memory'].size()
     # update memory
@@ -181,7 +181,7 @@ class SparseTemporalMemory(nn.Module):
 
     rev_link_matrix = (1 - temporal_write_weights_j) * rev_link_matrix + (temporal_write_weights_j * precedence_dense_i)
 
-    return link_matrix.squeeze() * I, rev_link_matrix.squeeze() * I
+    return link_matrix * I, rev_link_matrix * I
 
   def update_precedence(self, precedence, write_weights):
     return (1 - T.sum(write_weights, dim=-1, keepdim=True)) * precedence + write_weights
@@ -255,8 +255,8 @@ class SparseTemporalMemory(nn.Module):
     return usage, I
 
   def directional_weightings(self, link_matrix, rev_link_matrix, temporal_read_weights):
-    f = T.bmm(link_matrix, temporal_read_weights.unsqueeze(2)).squeeze()
-    b = T.bmm(rev_link_matrix, temporal_read_weights.unsqueeze(2)).squeeze()
+    f = T.bmm(link_matrix, temporal_read_weights.unsqueeze(2)).squeeze(2)
+    b = T.bmm(rev_link_matrix, temporal_read_weights.unsqueeze(2)).squeeze(2)
     return f, b
 
   def read_from_sparse_memory(self, memory, indexes, keys, least_used_mem, usage, forward, backward, prev_read_positions):
