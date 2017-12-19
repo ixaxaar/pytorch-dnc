@@ -22,7 +22,10 @@ Includes:
   - [SAM](#sam)
     - [Example usage](#example-usage-2)
     - [Debugging](#debugging-2)
-- [Example copy task](#example-copy-task)
+- [Tasks](#tasks)
+  - [Copy task (with curriculum and generalization)](#copy-task-with-curriculum-and-generalization)
+  - [Generalizing Addition task](#generalizing-addition-task)
+  - [Generalizing Argmax task](#generalizing-argmax-task)
 - [Code Structure](#code-structure)
 - [General noteworthy stuff](#general-noteworthy-stuff)
 
@@ -46,6 +49,12 @@ git clone https://github.com/ixaxaar/pytorch-dnc
 cd pytorch-dnc
 pip install -r ./requirements.txt
 pip install -e .
+```
+
+For using fully GPU based SDNCs or SAMs, install FAISS:
+
+```bash
+conda install faiss-gpu -c pytorch
 ```
 
 `pytest` is required to run the test
@@ -362,7 +371,9 @@ Memory vectors returned by forward pass (`np.ndarray`):
 | `debug_memory['usage']` | layer * time | nr_cells
 
 
-## Example copy task
+## Tasks
+
+### Copy task (with curriculum and generalization)
 
 The copy task, as descibed in the original paper, is included in the repo.
 
@@ -370,13 +381,13 @@ From the project root:
 ```bash
 python ./tasks/copy_task.py -cuda 0 -optim rmsprop -batch_size 32 -mem_slot 64 # (like original implementation)
 
-python3 ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 32 -batch_size 1000 -optim adam -sequence_max_length 8 # (faster convergence)
+python ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 32 -batch_size 1000 -optim adam -sequence_max_length 8 # (faster convergence)
 
 For SDNCs:
-python3 -B ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -memory_type sdnc -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 100 -mem_size 10  -read_heads 1 -sparse_reads 10 -batch_size 20 -optim adam -sequence_max_length 10
+python ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -memory_type sdnc -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 100 -mem_size 10  -read_heads 1 -sparse_reads 10 -batch_size 20 -optim adam -sequence_max_length 10
 
 and for curriculum learning for SDNCs:
-python3 -B ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -memory_type sdnc -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 100 -mem_size 10  -read_heads 1 -sparse_reads 4 -temporal_reads 4 -batch_size 20 -optim adam -sequence_max_length 4 -curriculum_increment 2 -curriculum_freq 10000
+python ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -memory_type sdnc -nlayer 1 -nhlayer 2 -dropout 0 -mem_slot 100 -mem_size 10  -read_heads 1 -sparse_reads 4 -temporal_reads 4 -batch_size 20 -optim adam -sequence_max_length 4 -curriculum_increment 2 -curriculum_freq 10000
 ```
 
 For the full set of options, see:
@@ -402,6 +413,30 @@ python ./tasks/copy_task.py -cuda 0
 The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_freq` iteration:
 
 ![Visdom dashboard](./docs/dnc-mem-debug.png)
+
+### Generalizing Addition task
+
+The adding task is as described in [this github pull request](https://github.com/Mostafa-Samir/DNC-tensorflow/pull/4#issue-199369192).
+This task
+- creates one-hot vectors of size `input_size`, each representing a number
+- feeds a sentence of them to a network
+- the output of which is added to get the sum of the decoded outputs
+
+The task first trains the network for sentences of size ~100, and then tests if the network genetalizes for lengths ~1000.
+
+```bash
+python ./tasks/adding_task.py -cuda 0 -lr 0.0001 -rnn_type lstm -memory_type sam -nlayer 1 -nhlayer 1 -nhid 100 -dropout 0 -mem_slot 1000 -mem_size 32 -read_heads 1 -sparse_reads 4 -batch_size 20 -optim rmsprop -input_size 3 -sequence_max_length 100
+```
+
+### Generalizing Argmax task
+
+The second adding task is similar to the first one, except that the network's output at the last time step is expected to be the argmax of the input.
+
+```bash
+python ./tasks/argmax_task.py -cuda 0 -lr 0.0001 -rnn_type lstm -memory_type dnc -nlayer 1 -nhlayer 1 -nhid 100 -dropout 0 -mem_slot 100 -mem_size 10 -read_heads 2 -batch_size 1 -optim rmsprop -sequence_max_length 15 -input_size 10 -iterations 10000
+```
+
+
 
 ## Code Structure
 
@@ -435,6 +470,15 @@ cmake ..
 make -j 4
 sudo make install
 ```
+
+FAISS can be installed using:
+
+```bash
+conda install faiss-gpu -c pytorch
+```
+
+FAISS is much faster, has a GPU implementation and is interoperable with pytorch tensors.
+We try to use FAISS by default, in absence of which we fall back to FLANN.
 
 2. An alternative to FLANN is [FAISS](https://github.com/facebookresearch/faiss), which is much faster and interoperable with torch cuda tensors (but is difficult to distribute, see [dnc/faiss_index.py](dnc/faiss_index.py)).
 3. `nan`s in the gradients are common, try with different batch sizes

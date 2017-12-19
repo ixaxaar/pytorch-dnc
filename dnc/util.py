@@ -138,7 +138,7 @@ def ptr(tensor):
   if T.is_tensor(tensor):
     return tensor.storage().data_ptr()
   elif hasattr(tensor, 'data'):
-    return tensor.data.storage().data_ptr()
+    return tensor.clone().data.storage().data_ptr()
   else:
     return tensor
 
