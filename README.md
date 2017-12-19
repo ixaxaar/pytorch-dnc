@@ -23,9 +23,9 @@ Includes:
     - [Example usage](#example-usage-2)
     - [Debugging](#debugging-2)
 - [Tasks](#tasks)
-  - [Copy task](#copy-task)
+  - [Copy task (with curriculum and generalization)](#copy-task-with-curriculum-and-generalization)
   - [Generalizing Addition task](#generalizing-addition-task)
-  - [Generalizing Addition task v2](#generalizing-addition-task-v2)
+  - [Generalizing Argmax task](#generalizing-argmax-task)
 - [Code Structure](#code-structure)
 - [General noteworthy stuff](#general-noteworthy-stuff)
 
