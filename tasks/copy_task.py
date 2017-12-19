@@ -185,7 +185,7 @@ if __name__ == '__main__':
   elif args.optim == 'adamax':
     optimizer = optim.Adamax(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98]) # 0.0001
   elif args.optim == 'rmsprop':
-    optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, eps=1e-10) # 0.0001
+    optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, momentum=0.9, eps=1e-10) # 0.0001
   elif args.optim == 'sgd':
     optimizer = optim.SGD(rnn.parameters(), lr=args.lr) # 0.01
   elif args.optim == 'adagrad':
@@ -358,3 +358,24 @@ if __name__ == '__main__':
       cur_weights = rnn.state_dict()
       T.save(cur_weights, check_ptr)
       llprint("Done!\n")
+
+  for i in range(int((iterations + 1) / 10)):
+    llprint("\nIteration %d/%d" % (i, iterations))
+    # We test now the learned generalization using sequence_max_length examples
+    random_length = np.random.randint(2, sequence_max_length * 10 + 1)
+    input_data, target_output, loss_weights = generate_data(random_length, input_size)
+
+    if rnn.debug:
+      output, (chx, mhx, rv), v = rnn(input_data, (None, mhx, None), reset_experience=True, pass_through_memory=True)
+    else:
+      output, (chx, mhx, rv) = rnn(input_data, (None, mhx, None), reset_experience=True, pass_through_memory=True)
+
+    output = output[:, -1, :].sum().data.cpu().numpy()[0]
+    target_output = target_output.sum().data.cpu().numpy()
+
+    try:
+      print("\nReal value: ", ' = ' + str(int(target_output[0])))
+      print("Predicted:  ", ' = ' + str(int(output // 1)) + " [" + str(output) + "]")
+    except Exception as e:
+      pass
+
