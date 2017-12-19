@@ -456,7 +456,7 @@ python ./tasks/argmax_task.py -cuda 0 -lr 0.0001 -rnn_type lstm -memory_type dnc
 
 ## General noteworthy stuff
 
-1. SDNCs use the [FLANN approximate nearest library](https://www.cs.ubc.ca/research/flann/), with its python binding [pyflann3](https://github.com/primetang/pyflann).
+1. SDNCs use the [FLANN approximate nearest neigbhour library](https://www.cs.ubc.ca/research/flann/), with its python binding [pyflann3](https://github.com/primetang/pyflann) and [FAISS](https://github.com/facebookresearch/faiss).
 
 FLANN can be installed either from pip (automatically as a dependency), or from source (e.g. for multithreading via OpenMP):
 
@@ -480,8 +480,7 @@ conda install faiss-gpu -c pytorch
 FAISS is much faster, has a GPU implementation and is interoperable with pytorch tensors.
 We try to use FAISS by default, in absence of which we fall back to FLANN.
 
-2. An alternative to FLANN is [FAISS](https://github.com/facebookresearch/faiss), which is much faster and interoperable with torch cuda tensors (but is difficult to distribute, see [dnc/faiss_index.py](dnc/faiss_index.py)).
-3. `nan`s in the gradients are common, try with different batch sizes
+2. `nan`s in the gradients are common, try with different batch sizes
 
 Repos referred to for creation of this repo:
 
