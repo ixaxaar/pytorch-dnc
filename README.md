@@ -51,6 +51,12 @@ pip install -r ./requirements.txt
 pip install -e .
 ```
 
+For using fully GPU based SDNCs or SAMs, install FAISS:
+
+```bash
+conda install faiss-gpu -c pytorch
+```
+
 `pytest` is required to run the test
 
 ## Architecure
@@ -464,6 +470,15 @@ cmake ..
 make -j 4
 sudo make install
 ```
+
+FAISS can be installed using:
+
+```bash
+conda install faiss-gpu -c pytorch
+```
+
+FAISS is much faster, has a GPU implementation and is interoperable with pytorch tensors.
+We try to use FAISS by default, in absence of which we fall back to FLANN.
 
 2. An alternative to FLANN is [FAISS](https://github.com/facebookresearch/faiss), which is much faster and interoperable with torch cuda tensors (but is difficult to distribute, see [dnc/faiss_index.py](dnc/faiss_index.py)).
 3. `nan`s in the gradients are common, try with different batch sizes

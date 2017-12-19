@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from faiss import faiss
+import faiss
 
-from faiss.faiss import cast_integer_to_float_ptr as cast_float
-from faiss.faiss import cast_integer_to_int_ptr as cast_int
-from faiss.faiss import cast_integer_to_long_ptr as cast_long
+from faiss import cast_integer_to_float_ptr as cast_float
+from faiss import cast_integer_to_int_ptr as cast_int
+from faiss import cast_integer_to_long_ptr as cast_long
 
 from .util import *
 
@@ -21,16 +21,16 @@ class FAISSIndex(object):
     self.num_lists = num_lists
     self.gpu_id = gpu_id
 
-    res = res if res else faiss.StandardGpuResources()
-    res.setTempMemoryFraction(0.01)
+    # BEWARE: if this variable gets deallocated, FAISS crashes
+    self.res = res if res else faiss.StandardGpuResources()
+    self.res.setTempMemoryFraction(0.01)
     if self.gpu_id != -1:
-      res.initializeForDevice(self.gpu_id)
+      self.res.initializeForDevice(self.gpu_id)
 
     nr_samples = self.nr_cells * 100 * self.cell_size
-    train = train if train is not None else T.randn(self.nr_cells * 100, self.cell_size) * 10
-    # train = T.randn(self.nr_cells * 100, self.cell_size)
+    train = train if train is not None else T.randn(self.nr_cells * 100, self.cell_size)
 
-    self.index = faiss.GpuIndexIVFFlat(res, self.cell_size, self.num_lists, faiss.METRIC_INNER_PRODUCT)
+    self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.num_lists, faiss.METRIC_L2)
     self.index.setNumProbes(self.probes)
     self.train(train)
 
@@ -48,7 +48,7 @@ class FAISSIndex(object):
     self.index.reset()
     T.cuda.synchronize()
 
-  def add(self, other, positions=None, last=-1):
+  def add(self, other, positions=None, last=None):
     other = ensure_gpu(other, self.gpu_id)
 
     T.cuda.synchronize()
@@ -57,7 +57,7 @@ class FAISSIndex(object):
       assert positions.size(0) == other.size(0), "Mismatch in number of positions and vectors"
       self.index.add_with_ids_c(other.size(0), cast_float(ptr(other)), cast_long(ptr(positions + 1)))
     else:
-      other = other[:last, :]
+      other = other[:last, :] if last is not None else other
       self.index.add_c(other.size(0), cast_float(ptr(other)))
     T.cuda.synchronize()
 

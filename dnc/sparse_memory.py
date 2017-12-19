@@ -8,7 +8,6 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-from .flann_index import FLANNIndex
 from .util import *
 import time
 
@@ -44,11 +43,12 @@ class SparseMemory(nn.Module):
     m = self.mem_size
     w = self.cell_size
     r = self.read_heads
-    # The visible memory size: (K * R read heads, forward and backward temporal reads of size KL and least used memory cell)
+    # The visible memory size: (K * R read heads, forward and backward
+    # temporal reads of size KL and least used memory cell)
     self.c = (r * self.K) + 1
 
     if self.independent_linears:
-      self.read_query_transform = nn.Linear(self.input_size, w*r)
+      self.read_query_transform = nn.Linear(self.input_size, w * r)
       self.write_vector_transform = nn.Linear(self.input_size, w)
       self.interpolation_gate_transform = nn.Linear(self.input_size, self.c)
       self.write_gate_transform = nn.Linear(self.input_size, 1)
@@ -72,11 +72,20 @@ class SparseMemory(nn.Module):
     if 'indexes' in hidden:
       [x.reset() for x in hidden['indexes']]
     else:
-      # create new indexes
-      hidden['indexes'] = \
-          [FLANNIndex(cell_size=self.cell_size,
-                 nr_cells=self.mem_size, K=self.K, num_kdtrees=self.num_lists,
-                 probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
+      # create new indexes, try to use FAISS, fall back to FLANN
+      try:
+        from .faiss_index import FAISSIndex
+        hidden['indexes'] = \
+            [FAISSIndex(cell_size=self.cell_size,
+                        nr_cells=self.mem_size, K=self.K, num_lists=self.num_lists,
+                        probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
+      except Exception as e:
+        print("\nFalling back to FLANN (CPU). \nFor using faster, GPU based indexes, install FAISS: `conda install faiss-gpu -c pytorch`")
+        from .flann_index import FLANNIndex
+        hidden['indexes'] = \
+            [FLANNIndex(cell_size=self.cell_size,
+                        nr_cells=self.mem_size, K=self.K, num_kdtrees=self.num_lists,
+                        probes=self.index_checks, gpu_id=self.mem_gpu_id) for x in range(b)]
 
     # add existing memory into indexes
     pos = hidden['read_positions'].squeeze().data.cpu().numpy()
@@ -104,7 +113,7 @@ class SparseMemory(nn.Module):
           'read_weights': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'write_weights': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'read_vectors': cuda(T.zeros(b, r, w).fill_(δ), gpu_id=self.gpu_id),
-          'least_used_mem': cuda(T.zeros(b, 1).fill_(c+1), gpu_id=self.gpu_id).long(),
+          'least_used_mem': cuda(T.zeros(b, 1).fill_(c + 1), gpu_id=self.gpu_id).long(),
           'usage': cuda(T.zeros(b, m).fill_(δ), gpu_id=self.gpu_id),
           'read_positions': cuda(T.arange(0, c).expand(b, c), gpu_id=self.gpu_id).long()
       }
@@ -126,9 +135,10 @@ class SparseMemory(nn.Module):
         hidden['read_weights'].data.fill_(δ)
         hidden['write_weights'].data.fill_(δ)
         hidden['read_vectors'].data.fill_(δ)
-        hidden['least_used_mem'].data.fill_(c+1+self.timestep)
+        hidden['least_used_mem'].data.fill_(c + 1 + self.timestep)
         hidden['usage'].data.fill_(δ)
-        hidden['read_positions'] = cuda(T.arange(self.timestep, c+self.timestep).expand(b, c), gpu_id=self.gpu_id).long()
+        hidden['read_positions'] = cuda(
+            T.arange(self.timestep, c + self.timestep).expand(b, c), gpu_id=self.gpu_id).long()
 
     return hidden
 
@@ -147,8 +157,9 @@ class SparseMemory(nn.Module):
       hidden['indexes'][batch].reset()
       hidden['indexes'][batch].add(hidden['memory'][batch], last=pos[batch][-1])
 
-    mem_limit_reached = hidden['least_used_mem'][0].data.cpu().numpy()[0] >= self.mem_size-1
-    hidden['least_used_mem'] = (hidden['least_used_mem'] * 0 + self.c + 1) if mem_limit_reached else hidden['least_used_mem'] + 1
+    mem_limit_reached = hidden['least_used_mem'][0].data.cpu().numpy()[0] >= self.mem_size - 1
+    hidden['least_used_mem'] = (hidden['least_used_mem'] * 0 + self.c +
+                                1) if mem_limit_reached else hidden['least_used_mem'] + 1
 
     return hidden
 
@@ -177,7 +188,8 @@ class SparseMemory(nn.Module):
     erase_matrix = I.unsqueeze(2).expand(hidden['visible_memory'].size())
 
     # write into memory
-    hidden['visible_memory'] = hidden['visible_memory'] * (1 - erase_matrix) + T.bmm(write_weights.unsqueeze(2), write_vector)
+    hidden['visible_memory'] = hidden['visible_memory'] * \
+        (1 - erase_matrix) + T.bmm(write_weights.unsqueeze(2), write_vector)
     hidden = self.write_into_sparse_memory(hidden)
 
     return hidden
@@ -240,11 +252,11 @@ class SparseMemory(nn.Module):
     # sparse read
     read_vectors, positions, read_weights, visible_memory = \
         self.read_from_sparse_memory(
-          hidden['memory'],
-          hidden['indexes'],
-          read_query,
-          hidden['least_used_mem'],
-          hidden['usage']
+            hidden['memory'],
+            hidden['indexes'],
+            read_query,
+            hidden['least_used_mem'],
+            hidden['usage']
         )
 
     hidden['read_positions'] = positions
@@ -276,11 +288,11 @@ class SparseMemory(nn.Module):
     else:
       ξ = self.interface_weights(ξ)
       # r read keys (b * r * w)
-      read_query = ξ[:, :r*w].contiguous().view(b, r, w)
+      read_query = ξ[:, :r * w].contiguous().view(b, r, w)
       # write key (b * 1 * w)
-      write_vector = ξ[:, r*w: r*w + w].contiguous().view(b, 1, w)
+      write_vector = ξ[:, r * w: r * w + w].contiguous().view(b, 1, w)
       # write vector (b * 1 * r)
-      interpolation_gate = F.sigmoid(ξ[:, r*w + w: r*w + w + c]).contiguous().view(b, c)
+      interpolation_gate = F.sigmoid(ξ[:, r * w + w: r * w + w + c]).contiguous().view(b, c)
       # write gate (b * 1)
       write_gate = F.sigmoid(ξ[:, -1].contiguous()).unsqueeze(1).view(b, 1)
 
