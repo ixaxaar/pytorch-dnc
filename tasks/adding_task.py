@@ -206,7 +206,7 @@ if __name__ == '__main__':
     llprint("\rIteration {ep}/{tot}".format(ep=epoch, tot=iterations))
     optimizer.zero_grad()
     # We use for training just (sequence_max_length / 10) examples
-    random_length = np.random.randint(2, (sequence_max_length / 10) + 1)
+    random_length = np.random.randint(2, (sequence_max_length) + 1)
     input_data, target_output, sums_text = generate_data(random_length, input_size)
 
     if rnn.debug:
@@ -226,12 +226,12 @@ if __name__ == '__main__':
     # detach memory from graph
     mhx = { k : (v.detach() if isinstance(v, var) else v) for k, v in mhx.items() }
 
-    summerize = (epoch % summarize_freq == 0)
+    summarize = (epoch % summarize_freq == 0)
     take_checkpoint = (epoch != 0) and (epoch % iterations == 0)
 
     last_100_losses.append(loss_value)
 
-    if summerize:
+    if summarize:
       llprint("\rIteration %d/%d" % (epoch, iterations))
       llprint("\nAvg. Logistic Loss: %.4f\n" % (np.mean(last_100_losses)))
       output = output.data.cpu().numpy()
@@ -250,10 +250,10 @@ if __name__ == '__main__':
 
   rnn.eval()
 
-  for i in range(int(iterations + 1 / 10)):
+  for i in range(int((iterations + 1) / 10)):
     llprint("\nIteration %d/%d" % (i, iterations))
     # We test now the learned generalization using sequence_max_length examples
-    random_length = np.random.randint(2, int(sequence_max_length) + 1)
+    random_length = np.random.randint(2, int(sequence_max_length) * 10 + 1)
     input_data, target_output, sums_text = generate_data(random_length, input_size)
 
     if rnn.debug:
