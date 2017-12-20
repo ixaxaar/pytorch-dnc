@@ -178,13 +178,14 @@ class DNC(nn.Module):
     input, chx = self.rnns[layer](input.unsqueeze(1), chx)
     input = input.squeeze(1)
 
-    # the interface vector
-    ξ = input
     # clip the controller output
     if self.clip != 0:
       output = T.clamp(input, -self.clip, self.clip)
     else:
       output = input
+
+    # the interface vector
+    ξ = output
 
     # pass through memory
     if pass_through_memory:
