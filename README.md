@@ -122,7 +122,7 @@ rnn = DNC(
 (controller_hidden, memory, read_vectors) = (None, None, None)
 
 output, (controller_hidden, memory, read_vectors) = \
-  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
 
 
@@ -150,7 +150,7 @@ rnn = DNC(
 (controller_hidden, memory, read_vectors) = (None, None, None)
 
 output, (controller_hidden, memory, read_vectors), debug_memory = \
-  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
 
 Memory vectors returned by forward pass (`np.ndarray`):
@@ -223,7 +223,7 @@ rnn = SDNC(
 (controller_hidden, memory, read_vectors) = (None, None, None)
 
 output, (controller_hidden, memory, read_vectors) = \
-  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
 
 
@@ -253,7 +253,7 @@ rnn = SDNC(
 (controller_hidden, memory, read_vectors) = (None, None, None)
 
 output, (controller_hidden, memory, read_vectors), debug_memory = \
-  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
 
 Memory vectors returned by forward pass (`np.ndarray`):
@@ -327,7 +327,7 @@ rnn = SAM(
 (controller_hidden, memory, read_vectors) = (None, None, None)
 
 output, (controller_hidden, memory, read_vectors) = \
-  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
 
 
@@ -356,7 +356,7 @@ rnn = SAM(
 (controller_hidden, memory, read_vectors) = (None, None, None)
 
 output, (controller_hidden, memory, read_vectors), debug_memory = \
-  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+  rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
 
 Memory vectors returned by forward pass (`np.ndarray`):
