@@ -8,7 +8,6 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
-from .flann_index import FLANNIndex
 from .util import *
 import time
 
