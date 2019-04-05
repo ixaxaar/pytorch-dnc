@@ -29,7 +29,7 @@ def cuda(x, grad=False, gpu_id=-1):
     t.requires_grad=grad
     return t
   else:
-    t = T.FloatTensor(x.pin_memory()).cuda(gpu_id, async=True)
+    t = T.FloatTensor(x.pin_memory()).cuda(gpu_id)
     t.requires_grad=grad
     return t
 
@@ -40,7 +40,7 @@ def cudavec(x, grad=False, gpu_id=-1):
     t.requires_grad = grad
     return t
   else:
-    t = T.Tensor(T.from_numpy(x).pin_memory()).cuda(gpu_id, async=True)
+    t = T.Tensor(T.from_numpy(x).pin_memory()).cuda(gpu_id)
     t.requires_grad = grad
     return t
 
@@ -51,7 +51,7 @@ def cudalong(x, grad=False, gpu_id=-1):
     t.requires_grad = grad
     return t
   else:
-    t = T.LongTensor(T.from_numpy(x.astype(np.long)).pin_memory()).cuda(gpu_id, async=True)
+    t = T.LongTensor(T.from_numpy(x.astype(np.long)).pin_memory()).cuda(gpu_id)
     t.requires_grad = grad
     return t
 
