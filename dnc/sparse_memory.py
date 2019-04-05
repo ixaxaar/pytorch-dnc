@@ -48,23 +48,34 @@ class SparseMemory(nn.Module):
     self.c = (r * self.K) + 1
 
     if self.independent_linears:
-      self.read_query_transform = nn.Linear(self.input_size, w * r)
-      self.write_vector_transform = nn.Linear(self.input_size, w)
-      self.interpolation_gate_transform = nn.Linear(self.input_size, self.c)
-      self.write_gate_transform = nn.Linear(self.input_size, 1)
+      if self.gpu_id != -1:
+        self.read_query_transform = nn.Linear(self.input_size, w * r).cuda()
+        self.write_vector_transform = nn.Linear(self.input_size, w).cuda()
+        self.interpolation_gate_transform = nn.Linear(self.input_size, self.c).cuda()
+        self.write_gate_transform = nn.Linear(self.input_size, 1).cuda()
+      else:
+        self.read_query_transform = nn.Linear(self.input_size, w * r)
+        self.write_vector_transform = nn.Linear(self.input_size, w)
+        self.interpolation_gate_transform = nn.Linear(self.input_size, self.c)
+        self.write_gate_transform = nn.Linear(self.input_size, 1)
       T.nn.init.orthogonal(self.read_query_transform.weight)
       T.nn.init.orthogonal(self.write_vector_transform.weight)
       T.nn.init.orthogonal(self.interpolation_gate_transform.weight)
       T.nn.init.orthogonal(self.write_gate_transform.weight)
     else:
       self.interface_size = (r * w) + w + self.c + 1
-      self.interface_weights = nn.Linear(self.input_size, self.interface_size)
+      if self.gpu_id != -1:
+        self.interface_weights = nn.Linear(self.input_size, self.interface_size).cuda()
+      else:
+        self.interface_weights = nn.Linear(self.input_size, self.interface_size)
       T.nn.init.orthogonal(self.interface_weights.weight)
 
     self.I = cuda(1 - T.eye(self.c).unsqueeze(0), gpu_id=self.gpu_id)  # (1 * n * n)
     self.δ = 0.005  # minimum usage
     self.timestep = 0
     self.mem_limit_reached = False
+    if self.gpu_id != -1:
+      self.cuda()
 
   def rebuild_indexes(self, hidden, erase=False):
     b = hidden['memory'].size(0)

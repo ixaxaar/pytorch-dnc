@@ -120,6 +120,7 @@ class DNC(nn.Module):
     if self.gpu_id != -1:
       [x.cuda(self.gpu_id) for x in self.rnns]
       [x.cuda(self.gpu_id) for x in self.memories]
+      self.output.cuda()
 
   def _init_hidden(self, hx, batch_size, reset_experience):
     # create empty hidden states if not provided
