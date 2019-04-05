@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch as T
 from torch.autograd import Variable as var
 import torch.nn.functional as F
-from torch.nn.utils import clip_grad_norm
+from torch.nn.utils import clip_grad_norm_
 import torch.optim as optim
 import numpy as np
 
@@ -70,7 +70,7 @@ def test_rnn_1():
   loss = criterion((output), target_output)
   loss.backward()
 
-  T.nn.utils.clip_grad_norm(rnn.parameters(), clip)
+  T.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
   optimizer.step()
 
   assert target_output.size() == T.Size([21, 10, 100])
@@ -126,7 +126,7 @@ def test_rnn_n():
   loss = criterion((output), target_output)
   loss.backward()
 
-  T.nn.utils.clip_grad_norm(rnn.parameters(), clip)
+  T.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
   optimizer.step()
 
   assert target_output.size() == T.Size([27, 10, 100])
@@ -187,7 +187,7 @@ def test_rnn_no_memory_pass():
   loss = criterion((output), target_output)
   loss.backward()
 
-  T.nn.utils.clip_grad_norm(rnn.parameters(), clip)
+  T.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
   optimizer.step()
 
   assert target_output.size() == T.Size([27, 10, 100])
