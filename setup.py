@@ -23,7 +23,6 @@ setup(
     name='dnc',
 
     version='1.0.0',
-
     description='Differentiable Neural Computer, for Pytorch',
     long_description=long_description,
 

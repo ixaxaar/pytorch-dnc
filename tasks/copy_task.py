@@ -20,7 +20,7 @@ from torch.autograd import Variable as var
 import torch.nn.functional as F
 import torch.optim as optim
 
-from torch.nn.utils import clip_grad_norm
+from torch.nn.utils import clip_grad_norm_
 
 from dnc.dnc import DNC
 from dnc.sdnc import SDNC
@@ -212,7 +212,7 @@ if __name__ == '__main__':
 
     loss.backward()
 
-    T.nn.utils.clip_grad_norm(rnn.parameters(), args.clip)
+    T.nn.utils.clip_grad_norm_(rnn.parameters(), args.clip)
     optimizer.step()
     loss_value = loss.data[0]
 

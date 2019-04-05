@@ -4,7 +4,6 @@
 import torch.nn as nn
 import torch as T
 import torch.nn.functional as F
-from torch.autograd import Variable as var
 import numpy as np
 import torch
 from torch.autograd import Variable
@@ -24,24 +23,37 @@ def recursiveTrace(obj):
 
 
 def cuda(x, grad=False, gpu_id=-1):
+  x = x.float() if T.is_tensor(x) else x
   if gpu_id == -1:
-    return var(x, requires_grad=grad)
+    t = T.FloatTensor(x)
+    t.requires_grad=grad
+    return t
   else:
-    return var(x.pin_memory(), requires_grad=grad).cuda(gpu_id, async=True)
+    t = T.FloatTensor(x.pin_memory()).cuda(gpu_id, async=True)
+    t.requires_grad=grad
+    return t
 
 
 def cudavec(x, grad=False, gpu_id=-1):
   if gpu_id == -1:
-    return var(T.from_numpy(x), requires_grad=grad)
+    t = T.Tensor(T.from_numpy(x))
+    t.requires_grad = grad
+    return t
   else:
-    return var(T.from_numpy(x).pin_memory(), requires_grad=grad).cuda(gpu_id, async=True)
+    t = T.Tensor(T.from_numpy(x).pin_memory()).cuda(gpu_id, async=True)
+    t.requires_grad = grad
+    return t
 
 
 def cudalong(x, grad=False, gpu_id=-1):
   if gpu_id == -1:
-    return var(T.from_numpy(x.astype(np.long)), requires_grad=grad)
+    t = T.LongTensor(T.from_numpy(x.astype(np.long)))
+    t.requires_grad = grad
+    return t
   else:
-    return var(T.from_numpy(x.astype(np.long)).pin_memory(), requires_grad=grad).cuda(gpu_id, async=True)
+    t = T.LongTensor(T.from_numpy(x.astype(np.long)).pin_memory()).cuda(gpu_id, async=True)
+    t.requires_grad = grad
+    return t
 
 
 def θ(a, b, dimA=2, dimB=2, normBy=2):
@@ -89,10 +101,7 @@ def σ(input, axis=1):
   trans_size = trans_input.size()
 
   input_2d = trans_input.contiguous().view(-1, trans_size[-1])
-  if '0.3' in T.__version__:
-    soft_max_2d = F.softmax(input_2d, -1)
-  else:
-    soft_max_2d = F.softmax(input_2d)
+  soft_max_2d = F.softmax(input_2d, -1)
   soft_max_nd = soft_max_2d.view(*trans_size)
   return soft_max_nd.transpose(axis, len(input_size) - 1)
 
