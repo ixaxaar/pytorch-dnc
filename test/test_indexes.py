@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch as T
 from torch.autograd import Variable as var
 import torch.nn.functional as F
-from torch.nn.utils import clip_grad_norm
+from torch.nn.utils import clip_grad_norm_
 import torch.optim as optim
 import numpy as np
 
