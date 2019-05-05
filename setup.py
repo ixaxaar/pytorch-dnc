@@ -56,7 +56,7 @@ setup(
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'tasks', 'scripts']),
 
-    install_requires=['torch', 'numpy', 'pyflann3'],
+    install_requires=['torch', 'numpy', 'flann'],
 
     extras_require={
         'dev': ['check-manifest'],
