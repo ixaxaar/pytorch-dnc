@@ -232,7 +232,7 @@ class Memory(nn.Module):
       # write gate (b * 1)
       write_gate = T.sigmoid(self.write_gate_transform(ξ).view(b, 1))
       # read modes (b * r * 3)
-      read_modes = σ(self.read_modes_transform(ξ).view(b, r, 3), 1)
+      read_modes = σ(self.read_modes_transform(ξ).view(b, r, 3), -1)
     else:
       ξ = self.interface_weights(ξ)
       # r read keys (b * w * r)
@@ -254,7 +254,7 @@ class Memory(nn.Module):
       # write gate (b * 1)
       write_gate = T.sigmoid(ξ[:, r * w + 2 * r + 3 * w + 2].contiguous()).unsqueeze(1).view(b, 1)
       # read modes (b * 3*r)
-      read_modes = σ(ξ[:, r * w + 2 * r + 3 * w + 3: r * w + 5 * r + 3 * w + 3].contiguous().view(b, r, 3), 1)
+      read_modes = σ(ξ[:, r * w + 2 * r + 3 * w + 3: r * w + 5 * r + 3 * w + 3].contiguous().view(b, r, 3), -1)
 
     hidden = self.write(write_key, write_vector, erase_vector, free_gates,
                         read_strengths, write_strength, write_gate, allocation_gate, hidden)
