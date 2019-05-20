@@ -22,7 +22,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='dnc',
 
-    version='1.0.1',
+    version='1.0.2',
     description='Differentiable Neural Computer, for Pytorch',
     long_description=long_description,
 
@@ -56,7 +56,7 @@ setup(
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests', 'tasks', 'scripts']),
 
-    install_requires=['torch', 'numpy', 'pyflann3'],
+    install_requires=['torch', 'numpy', 'flann'],
 
     extras_require={
         'dev': ['check-manifest'],
