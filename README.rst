@@ -364,7 +364,7 @@ Example usage
     (controller_hidden, memory, read_vectors) = (None, None, None)
 
     output, (controller_hidden, memory, read_vectors) = \
-      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 
 Debugging
 ^^^^^^^^^
@@ -393,7 +393,7 @@ These vectors can be analyzed or visualized, using visdom for example.
     (controller_hidden, memory, read_vectors) = (None, None, None)
 
     output, (controller_hidden, memory, read_vectors), debug_memory = \
-      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 
 Memory vectors returned by forward pass (``np.ndarray``):
 
@@ -712,7 +712,7 @@ Example usage
     (controller_hidden, memory, read_vectors) = (None, None, None)
 
     output, (controller_hidden, memory, read_vectors) = \
-      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 
 Debugging
 ^^^^^^^^^
@@ -743,7 +743,7 @@ These vectors can be analyzed or visualized, using visdom for example.
     (controller_hidden, memory, read_vectors) = (None, None, None)
 
     output, (controller_hidden, memory, read_vectors), debug_memory = \
-      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 
 Memory vectors returned by forward pass (``np.ndarray``):
 
@@ -1154,7 +1154,7 @@ Example usage
     (controller_hidden, memory, read_vectors) = (None, None, None)
 
     output, (controller_hidden, memory, read_vectors) = \
-      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 
 Debugging
 ^^^^^^^^^
@@ -1184,7 +1184,7 @@ These vectors can be analyzed or visualized, using visdom for example.
     (controller_hidden, memory, read_vectors) = (None, None, None)
 
     output, (controller_hidden, memory, read_vectors), debug_memory = \
-      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors, reset_experience=True))
+      rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 
 Memory vectors returned by forward pass (``np.ndarray``):
 
