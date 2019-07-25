@@ -227,7 +227,7 @@ if __name__ == '__main__':
 
     T.nn.utils.clip_grad_norm_(rnn.parameters(), args.clip)
     optimizer.step()
-    loss_value = loss.data[0]
+    loss_value = loss.item()
 
     # detach memory from graph
     mhx = { k : (v.detach() if isinstance(v, var) else v) for k, v in mhx.items() }
