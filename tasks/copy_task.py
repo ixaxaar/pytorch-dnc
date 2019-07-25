@@ -214,7 +214,7 @@ if __name__ == '__main__':
 
     T.nn.utils.clip_grad_norm_(rnn.parameters(), args.clip)
     optimizer.step()
-    loss_value = loss.data[0]
+    loss_value = loss.item()
 
     summarize = (epoch % summarize_freq == 0)
     take_checkpoint = (epoch != 0) and (epoch % check_freq == 0)
