@@ -456,7 +456,7 @@ python ./tasks/argmax_task.py -cuda 0 -lr 0.0001 -rnn_type lstm -memory_type dnc
 
 ## General noteworthy stuff
 
-1. SDNCs use the [FLANN approximate nearest neigbhour library](https://www.cs.ubc.ca/research/flann/), with its python binding [pyflann3](https://github.com/primetang/pyflann) and [FAISS](https://github.com/facebookresearch/faiss).
+1. SDNCs use the [FLANN approximate nearest neigbhour library](https://github.com/mariusmuja/flann), with its python binding [pyflann3](https://github.com/primetang/pyflann) and [FAISS](https://github.com/facebookresearch/faiss).
 
 FLANN can be installed either from pip (automatically as a dependency), or from source (e.g. for multithreading via OpenMP):
 
