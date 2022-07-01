@@ -313,6 +313,3 @@ class DNC(nn.Module):
     s += ")\n" + super(DNC, self).__repr__() + \
       "\n----------------------------------------\n"
     return s.format(name=self.__class__.__name__, **self.__dict__)
-
-
-

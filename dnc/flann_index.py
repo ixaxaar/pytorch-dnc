@@ -50,4 +50,3 @@ class FLANNIndex(object):
 
   def reset(self):
     self.index.delete_index()
-

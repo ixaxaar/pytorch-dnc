@@ -131,4 +131,3 @@ class SDNC(DNC):
     debug_obj['read_positions'].append(mhx['read_positions'][0].unsqueeze(0).data.cpu().numpy())
 
     return debug_obj
-

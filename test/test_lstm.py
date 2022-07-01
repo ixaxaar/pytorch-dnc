@@ -194,4 +194,3 @@ def test_rnn_no_memory_pass():
   assert chx[0][0].size() == T.Size([num_hidden_layers,10,100])
   assert mhx['memory'].size() == T.Size([10,12,17])
   assert rv == None
-

@@ -378,4 +378,3 @@ if __name__ == '__main__':
       print("Predicted:  ", ' = ' + str(int(output // 1)) + " [" + str(output) + "]")
     except Exception as e:
       pass
-

@@ -43,4 +43,3 @@ def test_indexes():
 
     assert dist.size() == T.Size([1,K])
     assert labels.size() == T.Size([1, K])
-

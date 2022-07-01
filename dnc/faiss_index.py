@@ -83,4 +83,3 @@ class FAISSIndex(object):
     )
     T.cuda.synchronize()
     return (distances, (labels-1))
-

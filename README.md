@@ -7,7 +7,7 @@ Includes:
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
+## Table of Contents
 
 - [Install](#install)
   - [From source](#from-source)
@@ -487,4 +487,3 @@ Repos referred to for creation of this repo:
 - [deepmind/dnc](https://github.com/deepmind/dnc)
 - [ypxie/pytorch-NeuCom](https://github.com/ypxie/pytorch-NeuCom)
 - [jingweiz/pytorch-dnc](https://github.com/jingweiz/pytorch-dnc)
-
