@@ -19,37 +19,22 @@ repos:
       - id: detect-private-key
       - id: requirements-txt-fixer
 
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.4.1
-    hooks:
-      - id: isort
-        files: ^src/
-
   - repo: https://github.com/pre-commit/mirrors-yapf
     rev: v0.30.0
     hooks:
       - id: yapf
-        files: src/server.py
 
   - repo: https://gitlab.com/PyCQA/flake8
     rev: 3.8.2
     hooks:
       - id: flake8
-        files: ^src/
-        exclude : ^src/config.py
+        files: ^dnc/
 
   - repo: https://github.com/resmio/pre-commit-doctoc
     rev: v1.0.0
     hooks:
       - id: doctoc
         args: [--title=## Table of Contents]
-
-  - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.50.0
-    hooks:
-      - id: terraform_tfsec
-        args: [--args=--concise-output]
-        files: ^deployment/
 
 
 default_language_version:
