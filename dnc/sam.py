@@ -15,8 +15,6 @@ from .sparse_memory import SparseMemory
 from .util import *
 
 
-
-
 class SAM(DNC):
     def __init__(self,
                  input_size,

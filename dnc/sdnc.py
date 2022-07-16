@@ -15,8 +15,6 @@ from .sparse_temporal_memory import SparseTemporalMemory
 from .util import *
 
 
-
-
 class SDNC(DNC):
     def __init__(self,
                  input_size,

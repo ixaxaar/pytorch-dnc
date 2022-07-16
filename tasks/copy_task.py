@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import warnings
+
 warnings.filterwarnings('ignore')
 
 import numpy as np
@@ -108,13 +109,9 @@ else:
     print('Using CPU.')
 
 
-
-
 def llprint(message):
     sys.stdout.write(message)
     sys.stdout.flush()
-
-
 
 
 def generate_data(batch_size, length, size, cuda=-1):
@@ -137,13 +134,9 @@ def generate_data(batch_size, length, size, cuda=-1):
     return var(input_data), var(target_output)
 
 
-
-
 def criterion(predictions, targets):
     return T.mean(-1 * F.logsigmoid(predictions) * (targets)
                   - T.log(1 - F.sigmoid(predictions) + 1e-9) * (1 - targets))
-
-
 
 
 if __name__ == '__main__':

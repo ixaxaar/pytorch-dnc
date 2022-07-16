@@ -13,8 +13,6 @@ from torch.autograd import Variable as var
 from .util import *
 
 
-
-
 class SparseMemory(nn.Module):
     def __init__(self,
                  input_size,

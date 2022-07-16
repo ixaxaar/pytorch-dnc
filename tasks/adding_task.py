@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import warnings
+
 warnings.filterwarnings('ignore')
 
 import numpy as np
@@ -98,21 +99,15 @@ else:
     print('Using CPU.')
 
 
-
-
 def llprint(message):
     sys.stdout.write(message)
     sys.stdout.flush()
-
-
 
 
 def onehot(x, n):
     ret = np.zeros(n).astype(np.float32)
     ret[x] = 1.0
     return ret
-
-
 
 
 def generate_data(length, size):
@@ -141,12 +136,8 @@ def generate_data(length, size):
             sums_text
 
 
-
-
 def cross_entropy(prediction, target):
     return (prediction - target)**2
-
-
 
 
 if __name__ == '__main__':

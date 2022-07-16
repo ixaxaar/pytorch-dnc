@@ -8,8 +8,6 @@ import torch.nn.functional as F
 import numpy as np
 
 
-
-
 def generate_data(batch_size, length, size, cuda=-1):
 
     input_data = np.zeros((batch_size, 2 * length + 1, size), dtype=np.float32)
@@ -28,8 +26,6 @@ def generate_data(batch_size, length, size, cuda=-1):
         target_output = target_output.cuda()
 
     return var(input_data), var(target_output)
-
-
 
 
 def criterion(predictions, targets):

@@ -9,8 +9,6 @@ from faiss import cast_integer_to_long_ptr as cast_long
 from .util import *
 
 
-
-
 class FAISSIndex(object):
     def __init__(self,
                  cell_size=20,

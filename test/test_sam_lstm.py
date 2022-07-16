@@ -24,8 +24,6 @@ from dnc import SAM
 from test_utils import generate_data, criterion
 
 
-
-
 def test_rnn_1():
     T.manual_seed(1111)
 
@@ -82,8 +80,6 @@ def test_rnn_1():
     assert rv.size() == T.Size([10, 10])
 
 
-
-
 def test_rnn_n():
     T.manual_seed(1111)
 
@@ -138,8 +134,6 @@ def test_rnn_n():
     assert chx[0][0].size() == T.Size([num_hidden_layers, 10, 100])
     # assert mhx['memory'].size() == T.Size([10,12,17])
     assert rv.size() == T.Size([10, 34])
-
-
 
 
 def test_rnn_no_memory_pass():

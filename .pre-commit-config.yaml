@@ -24,6 +24,12 @@ repos:
     hooks:
       - id: yapf
 
+  - repo: https://github.com/myint/docformatter
+    rev: v1.3.1
+    hooks:
+      - id: docformatter
+        args: [--in-place]
+
   - repo: https://gitlab.com/PyCQA/flake8
     rev: 3.8.2
     hooks:

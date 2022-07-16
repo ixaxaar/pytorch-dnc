@@ -24,8 +24,6 @@ from pyflann import *
 from dnc.flann_index import FLANNIndex
 
 
-
-
 def test_indexes():
 
     n = 30

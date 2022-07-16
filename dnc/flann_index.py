@@ -10,8 +10,6 @@ from torch.autograd import Variable as var
 from .util import *
 
 
-
-
 class FLANNIndex(object):
     def __init__(self, cell_size=20, nr_cells=1024, K=4, num_kdtrees=32, probes=32, gpu_id=-1):
         super(FLANNIndex, self).__init__()

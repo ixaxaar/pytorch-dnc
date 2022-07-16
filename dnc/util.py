@@ -12,8 +12,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
-
-
 def recursiveTrace(obj):
     print(type(obj))
     if hasattr(obj, 'grad_fn'):
@@ -23,8 +21,6 @@ def recursiveTrace(obj):
         print(obj.requires_grad, len(obj.saved_tensors), len(obj.saved_variables))
         [print(v) for v in obj.saved_variables]
         [recursiveTrace(v.grad_fn) for v in obj.saved_variables]
-
-
 
 
 def cuda(x, grad=False, gpu_id=-1):
@@ -39,8 +35,6 @@ def cuda(x, grad=False, gpu_id=-1):
         return t
 
 
-
-
 def cudavec(x, grad=False, gpu_id=-1):
     if gpu_id == -1:
         t = T.Tensor(T.from_numpy(x))
@@ -50,8 +44,6 @@ def cudavec(x, grad=False, gpu_id=-1):
         t = T.Tensor(T.from_numpy(x).pin_memory()).cuda(gpu_id)
         t.requires_grad = grad
         return t
-
-
 
 
 def cudalong(x, grad=False, gpu_id=-1):
@@ -65,20 +57,18 @@ def cudalong(x, grad=False, gpu_id=-1):
         return t
 
 
-
-
 def θ(a, b, normBy=2):
-    """Batchwise Cosine similarity
+    """Batchwise Cosine similarity.
 
-  Cosine similarity
+    Cosine similarity
 
-  Arguments:
-      a {Tensor} -- A 3D Tensor (b * m * w)
-      b {Tensor} -- A 3D Tensor (b * r * w)
+    Arguments:
+        a {Tensor} -- A 3D Tensor (b * m * w)
+        b {Tensor} -- A 3D Tensor (b * r * w)
 
-  Returns:
-      Tensor -- Batchwise cosine similarity (b * r * m)
-  """
+    Returns:
+        Tensor -- Batchwise cosine similarity (b * r * m)
+    """
     dot = T.bmm(a, b.transpose(1, 2))
     a_norm = T.norm(a, normBy, dim=2).unsqueeze(2)
     b_norm = T.norm(b, normBy, dim=2).unsqueeze(1)
@@ -86,22 +76,20 @@ def θ(a, b, normBy=2):
     return cos.transpose(1, 2).contiguous()
 
 
-
-
 def σ(input, axis=1):
-    """Softmax on an axis
+    """Softmax on an axis.
 
-  Softmax on an axis
+    Softmax on an axis
 
-  Arguments:
-      input {Tensor} -- input Tensor
+    Arguments:
+        input {Tensor} -- input Tensor
 
-  Keyword Arguments:
-      axis {number} -- axis on which to take softmax on (default: {1})
+    Keyword Arguments:
+        axis {number} -- axis on which to take softmax on (default: {1})
 
-  Returns:
-      Tensor -- Softmax output Tensor
-  """
+    Returns:
+        Tensor -- Softmax output Tensor
+    """
     input_size = input.size()
 
     trans_input = input.transpose(axis, len(input_size) - 1)
@@ -113,11 +101,7 @@ def σ(input, axis=1):
     return soft_max_nd.transpose(axis, len(input_size) - 1)
 
 
-
-
 δ = 1e-6
-
-
 
 
 def register_nan_checks(model):
@@ -128,8 +112,6 @@ def register_nan_checks(model):
             print('NaN gradient in grad_input ' + type(module).__name__)
 
     model.apply(lambda module: module.register_backward_hook(check_grad))
-
-
 
 
 def apply_dict(dic):
@@ -143,13 +125,9 @@ def apply_dict(dic):
                 apply_var(pv, pk)
 
 
-
-
 def apply_var(v, k):
     if isinstance(v, Variable) and v.requires_grad:
         v.register_hook(check_nan_gradient(k))
-
-
 
 
 def check_nan_gradient(name=''):
@@ -163,8 +141,6 @@ def check_nan_gradient(name=''):
     return f
 
 
-
-
 def ptr(tensor):
     if T.is_tensor(tensor):
         return tensor.storage().data_ptr()
@@ -172,8 +148,6 @@ def ptr(tensor):
         return tensor.clone().data.storage().data_ptr()
     else:
         return tensor
-
-
 
 
 # TODO: EWW change this shit
@@ -190,8 +164,6 @@ def ensure_gpu(tensor, gpu_id):
         return cudavec(tensor, gpu_id=gpu_id).data
     else:
         return tensor
-
-
 
 
 def print_gradient(x, name):
