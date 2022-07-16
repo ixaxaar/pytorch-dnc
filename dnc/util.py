@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 import re
 import string
 
 import numpy as np
 import torch
 import torch as T
+from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
@@ -14,24 +13,24 @@ from torch.autograd import Variable
 
 def recursiveTrace(obj):
     print(type(obj))
-    if hasattr(obj, 'grad_fn'):
+    if hasattr(obj, "grad_fn"):
         print(obj.grad_fn)
         recursiveTrace(obj.grad_fn)
-    elif hasattr(obj, 'saved_variables'):
+    elif hasattr(obj, "saved_variables"):
         print(obj.requires_grad, len(obj.saved_tensors), len(obj.saved_variables))
         [print(v) for v in obj.saved_variables]
         [recursiveTrace(v.grad_fn) for v in obj.saved_variables]
 
 
-def cuda(x, grad=False, gpu_id=-1):
+def cuda(x: Tensor, grad: bool = False, gpu_id: int = -1):
     x = x.float() if T.is_tensor(x) else x
     if gpu_id == -1:
         t = T.FloatTensor(x)
-        t.requires_grad = grad
+        t.requires_grad(grad)
         return t
     else:
-        t = T.FloatTensor(x.pin_memory()).cuda(gpu_id)
-        t.requires_grad = grad
+        t = T.FloatTensor(x).cuda(gpu_id)
+        t.requires_grad(grad)
         return t
 
 
@@ -109,7 +108,7 @@ def register_nan_checks(model):
         # print(module) you can add this to see that the hook is called
         # print('hook called for ' + str(type(module)))
         if any(np.all(np.isnan(gi.data.cpu().numpy())) for gi in grad_input if gi is not None):
-            print('NaN gradient in grad_input ' + type(module).__name__)
+            print("NaN gradient in grad_input " + type(module).__name__)
 
     model.apply(lambda module: module.register_backward_hook(check_grad))
 
@@ -118,7 +117,7 @@ def apply_dict(dic):
     for k, v in dic.items():
         apply_var(v, k)
         if isinstance(v, nn.Module):
-            key_list = [a for a in dir(v) if not a.startswith('__')]
+            key_list = [a for a in dir(v) if not a.startswith("__")]
             for key in key_list:
                 apply_var(getattr(v, key), key)
             for pk, pv in v._parameters.items():
@@ -130,10 +129,10 @@ def apply_var(v, k):
         v.register_hook(check_nan_gradient(k))
 
 
-def check_nan_gradient(name=''):
+def check_nan_gradient(name=""):
     def f(tensor):
         if np.isnan(T.mean(tensor).data.cpu().numpy()):
-            print('\nnan gradient of {} :'.format(name))
+            print("\nnan gradient of {} :".format(name))
             # print(tensor)
             # assert 0, 'nan gradient'
             return tensor
@@ -144,7 +143,7 @@ def check_nan_gradient(name=''):
 def ptr(tensor):
     if T.is_tensor(tensor):
         return tensor.storage().data_ptr()
-    elif hasattr(tensor, 'data'):
+    elif hasattr(tensor, "data"):
         return tensor.clone().data.storage().data_ptr()
     else:
         return tensor

@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import torch as T
 import torch.nn as nn
@@ -15,7 +13,6 @@ from .util import *
 
 class DNC(nn.Module):
     """Differentiable neural computer."""
-
     def __init__(
         self,
         input_size: int,
@@ -101,8 +98,7 @@ class DNC(nn.Module):
                         batch_first=True,
                         dropout=self.dropout,
                         num_layers=self.num_hidden_layers,
-                    )
-                )
+                    ))
             elif self.rnn_type.lower() == "gru":
                 self.rnns.append(
                     nn.GRU(
@@ -112,8 +108,7 @@ class DNC(nn.Module):
                         batch_first=True,
                         dropout=self.dropout,
                         num_layers=self.num_hidden_layers,
-                    )
-                )
+                    ))
             if self.rnn_type.lower() == "lstm":
                 self.rnns.append(
                     nn.LSTM(
@@ -123,8 +118,7 @@ class DNC(nn.Module):
                         batch_first=True,
                         dropout=self.dropout,
                         num_layers=self.num_hidden_layers,
-                    )
-                )
+                    ))
             setattr(self, self.rnn_type.lower() + "_layer_" + str(layer), self.rnns[layer])
 
             # memories for each layer
@@ -137,8 +131,7 @@ class DNC(nn.Module):
                         read_heads=self.r,
                         gpu_id=self.gpu_id,
                         independent_linears=self.independent_linears,
-                    )
-                )
+                    ))
                 setattr(self, "rnn_layer_memory_" + str(layer), self.memories[layer])
 
         # only one memory shared by all layers
@@ -151,8 +144,7 @@ class DNC(nn.Module):
                     read_heads=self.r,
                     gpu_id=self.gpu_id,
                     independent_linears=self.independent_linears,
-                )
-            )
+                ))
             setattr(self, "rnn_layer_memory_shared", self.memories[0])
 
         # final output layer
@@ -178,7 +170,8 @@ class DNC(nn.Module):
             )
             xavier_uniform_(h)
 
-            chx = [(h, h) if self.rnn_type.lower() == "lstm" else h for x in range(self.num_layers)]
+            chx = [(h, h) if self.rnn_type.lower() == "lstm" else h
+                   for x in range(self.num_layers)]
 
         # Last read vectors
         if last_read is None:
@@ -194,7 +187,10 @@ class DNC(nn.Module):
             if self.share_memory:
                 mhx = self.memories[0].reset(batch_size, mhx, erase=reset_experience)
             else:
-                mhx = [m.reset(batch_size, h, erase=reset_experience) for m, h in zip(self.memories, mhx)]
+                mhx = [
+                    m.reset(batch_size, h, erase=reset_experience)
+                    for m, h in zip(self.memories, mhx)
+                ]
 
         return chx, mhx, last_read
 
@@ -247,11 +243,11 @@ class DNC(nn.Module):
         return output, (chx, mhx, read_vectors)
 
     def forward(
-        self,
-        input,
-        hx=(None, None, None),
-        reset_experience=False,
-        pass_through_memory=True,
+            self,
+            input,
+            hx=(None, None, None),
+            reset_experience=False,
+            pass_through_memory=True,
     ):
         # handle packed data
         is_packed = type(input) is PackedSequence
@@ -260,7 +256,8 @@ class DNC(nn.Module):
             max_length = lengths[0]
         else:
             max_length = input.size(1) if self.batch_first else input.size(0)
-            lengths = [input.size(1)] * max_length if self.batch_first else [input.size(0)] * max_length
+            lengths = ([input.size(1)] * max_length if self.batch_first else [input.size(0)]
+                       * max_length)
 
         batch_size = input.size(0) if self.batch_first else input.size(1)
 
@@ -268,7 +265,8 @@ class DNC(nn.Module):
             input = input.transpose(0, 1)
         # make the data time-first
 
-        controller_hidden, mem_hidden, last_read = self._init_hidden(hx, batch_size, reset_experience)
+        controller_hidden, mem_hidden, last_read = self._init_hidden(hx, batch_size,
+                                                                     reset_experience)
 
         # concat input with last read (or padding) vectors
         inputs = [T.cat([input[:, x, :], last_read], 1) for x in range(max_length)]
@@ -288,9 +286,9 @@ class DNC(nn.Module):
                 chx = controller_hidden[layer]
                 m = mem_hidden if self.share_memory else mem_hidden[layer]
                 # pass through controller
-                outs[time], (chx, m, read_vectors) = self._layer_forward(
-                    inputs[time], layer, (chx, m), pass_through_memory
-                )
+                outs[time], (chx, m,
+                             read_vectors) = self._layer_forward(inputs[time], layer, (chx, m),
+                                                                 pass_through_memory)
 
                 # debug memory
                 if self.debug:

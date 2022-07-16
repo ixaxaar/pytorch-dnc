@@ -1,6 +1,41 @@
 {
-  "python.formatting.provider": "yapf",
-  "python.linting.flake8Enabled": true,
+  "editor.tokenColorCustomizations": {
+    "comments": "#00000000",
+    "textMateRules": [
+      {
+        "scope": [
+          "comment",
+          "comment.block",
+          "comment.line",
+          "comment.line.double-slash",
+          "variable.other.jsdoc",
+          "storage.type.class.jsdoc",
+          "punctuation.definition.block.tag.jsdoc",
+          "punctuation.definition.bracket.curly.begin.jsdoc",
+          "punctuation.definition.bracket.curly.end.jsdoc",
+          "entity.name.type.instance.jsdoc",
+          "comment.block.documentation.ts",
+          "comment.block.documentation.js",
+          "comment.block.documentation.cs",
+          "comment.block.documentation.cs entity.other.attribute-name.localname.cs",
+          "comment.block.documentation.cs entity.other.attribute-name.cs",
+          "comment.block.documentation.cs punctuation.definition.tag.cs",
+          "comment.block.documentation.cs punctuation.definition.string.begin.cs",
+          "comment.block.documentation.cs punctuation.definition.string.end.cs",
+          "comment.block.documentation.cs punctuation.definition.bracket.curly.begin.cs",
+          "comment.block.documentation.cs punctuation.definition.bracket.curly.end.cs",
+          "comment.block.documentation.cs punctuation.definition.block.tag.cs",
+          "comment.block.documentation.cs string.quoted.double.cs",
+          "comment.block.documentation.cs entity.name.tag.localname.cs"
+        ],
+        "settings": {
+          "foreground": "#00000000"
+        }
+      }
+    ]
+  },
+  "python.formatting.provider": "black",
   "python.linting.enabled": true,
+  "python.linting.flake8Enabled": true,
   "python.linting.mypyEnabled": false
 }
