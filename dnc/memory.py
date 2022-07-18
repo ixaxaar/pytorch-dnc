@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import *
 import torch as T
 from torch import Tensor
 import torch.nn as nn
@@ -7,11 +8,12 @@ from torch.autograd import Variable as var
 
 from .util import *
 
-HiddenState = dict[str, Tensor]
+MemoryHiddenState = Dict[str, Tensor]
 
 
 class Memory(nn.Module):
     """Memory module."""
+
     def __init__(
         self,
         input_size: int,
@@ -64,21 +66,25 @@ class Memory(nn.Module):
             self.read_modes_transform = nn.Linear(self.input_size, 3 * self.read_heads)
         else:
             # one linear layer for all the above
-            self.interface_size = ((self.cell_size * self.read_heads) + (3 * self.cell_size) +
-                                   (5 * self.read_heads) + 3)
+            self.interface_size = (
+                (self.cell_size * self.read_heads)
+                + (3 * self.cell_size)
+                + (5 * self.read_heads)
+                + 3
+            )
             self.interface_weights = nn.Linear(self.input_size, self.interface_size)
 
         # n*n identity matrix - (1 * n * n)
         self.identity = cuda(1 - T.eye(self.nr_cells).unsqueeze(0), gpu_id=self.gpu_id)
 
-    def new(self, batch_size: int = 1) -> HiddenState:
+    def new(self, batch_size: int = 1) -> MemoryHiddenState:
         """Generate new hidden state.
 
         Args:
             batch_size (int, optional): Batch size. Defaults to 1.
 
         Returns:
-            HiddenState: A dict containing hidden states of the memory module.
+            MemoryHiddenState: A dict containing hidden states of the memory module.
             Contains:
             - Memory: BATCH_SIZE x NR_CELLS x CELL_SIZE
             - Link matrix: BATCH_SIZE x NR_CELLS x NR_CELLS
@@ -92,8 +98,9 @@ class Memory(nn.Module):
                 T.zeros(batch_size, self.nr_cells, self.cell_size),
                 gpu_id=self.gpu_id,
             ),
-            "link_matrix": cuda(T.zeros(batch_size, 1, self.nr_cells, self.nr_cells),
-                                gpu_id=self.gpu_id),
+            "link_matrix": cuda(
+                T.zeros(batch_size, 1, self.nr_cells, self.nr_cells), gpu_id=self.gpu_id
+            ),
             "precedence": cuda(T.zeros(batch_size, 1, self.nr_cells), gpu_id=self.gpu_id),
             "read_weights": cuda(
                 T.zeros(batch_size, self.read_heads, self.nr_cells),
@@ -103,35 +110,35 @@ class Memory(nn.Module):
             "usage_vector": cuda(T.zeros(batch_size, self.nr_cells), gpu_id=self.gpu_id),
         }
 
-    def clone(self, hidden: HiddenState) -> HiddenState:
+    def clone(self, hidden: MemoryHiddenState) -> MemoryHiddenState:
         """Clone the hidden states.
 
         Args:
-            hidden (HiddenState): The hidden states dictionary
+            hidden (MemoryHiddenState): The hidden states dictionary
 
         Returns:
             T: A dict containing hidden states of the memory module.
         """
         cloned = {}
         for vector in [
-                "memory",
-                "link_matrix",
-                "precedence",
-                "read_weights",
-                "write_weights",
-                "usage_vector",
+            "memory",
+            "link_matrix",
+            "precedence",
+            "read_weights",
+            "write_weights",
+            "usage_vector",
         ]:
             cloned[vector] = hidden[vector].clone()
         return cloned
 
-    def erase(self, hidden: HiddenState) -> HiddenState:
+    def erase(self, hidden: MemoryHiddenState) -> MemoryHiddenState:
         """Erase hidden states.
 
         Args:
-            hidden (HiddenState): The hidden states dictionary
+            hidden (MemoryHiddenState): The hidden states dictionary
 
         Returns:
-            HiddenState: A dict containing hidden states of the memory module.
+            MemoryHiddenState: A dict containing hidden states of the memory module.
         """
         hidden["memory"].data.zero_()
         hidden["link_matrix"].data.zero_()
@@ -141,19 +148,18 @@ class Memory(nn.Module):
         hidden["usage_vector"].data.zero_()
         return hidden
 
-    def reset(self,
-              batch_size: int = 1,
-              hidden: Optional[HiddenState] = None,
-              erase: bool = True) -> HiddenState:
+    def reset(
+        self, batch_size: int = 1, hidden: Optional[MemoryHiddenState] = None, erase: bool = True
+    ) -> MemoryHiddenState:
         """Reset hidden states.
 
         Args:
             batch_size (int, optional): Batch size. Defaults to 1.
-            hidden (HiddenState, optional): Dict containing hidden states. Defaults to None.
+            hidden (MemoryHiddenState, optional): Dict containing hidden states. Defaults to None.
             erase (bool, optional): Whether to erase the states. Defaults to True.
 
         Returns:
-            HiddenState: A dict containing hidden states of the memory module.
+            MemoryHiddenState: A dict containing hidden states of the memory module.
         """
         if hidden is None:
             return self.new(batch_size)
@@ -163,8 +169,9 @@ class Memory(nn.Module):
                 hidden = self.erase(hidden)
         return hidden
 
-    def get_usage_vector(self, usage: Tensor, free_gates: Tensor, read_weights: Tensor,
-                         write_weights: Tensor) -> Tensor:
+    def get_usage_vector(
+        self, usage: Tensor, free_gates: Tensor, read_weights: Tensor, write_weights: Tensor
+    ) -> Tensor:
         """Update and get the updated usage vector.
 
         Args:
@@ -181,7 +188,7 @@ class Memory(nn.Module):
         return usage * ψ
 
     # TODO: write_gate is not used anywhere
-    def allocate(self, usage: Tensor, write_gate: Tensor) -> Tensor:
+    def allocate(self, usage: Tensor, write_gate: Tensor) -> Tuple[Tensor, Tensor]:
         """Get the allocation weightings for finding new locations to write.
 
         Args:
@@ -222,11 +229,11 @@ class Memory(nn.Module):
         """Get the write weightings from the allocation weightings.
 
         Args:
-            memory (Tensor): The memory tensor
+            memory (Tensor:NR_CELLS * CELL_SIZE): The memory tensor
             write_content_weights (Tensor): Write content weightings
             allocation_weights (Tensor): Allocation weightings
-            write_gate (Tensor): Write gate
-            allocation_gate (Tensor): Allocation gate
+            write_gate (Tensor:BATCH_SIZE * 1): Write gate
+            allocation_gate (Tensor:BATCH_SIZE * 1): Allocation gate
 
         Returns:
             Tensor: Write weightings
@@ -236,13 +243,14 @@ class Memory(nn.Module):
 
         return wg * (ag * allocation_weights + (1 - ag) * write_content_weights)
 
-    def get_link_matrix(self, link_matrix: Tensor, write_weights: Tensor,
-                        precedence: Tensor) -> Tensor:
+    def get_link_matrix(
+        self, link_matrix: Tensor, write_weights: Tensor, precedence: Tensor
+    ) -> Tensor:
         """Get the updated link matrix.
 
         Args:
-            link_matrix (Tensor): Previous link matrix
-            write_weights (Tensor): Write weights
+            link_matrix (Tensor:NR_CELLS * NR_CELLS): Previous link matrix
+            write_weights (Tensor:BATCH_SIZE x 1 x NR_CELLS): Write weights
             precedence (Tensor): Precedence matrix
 
         Returns:
@@ -264,7 +272,7 @@ class Memory(nn.Module):
 
         Args:
             precedence (Tensor): The precedence matrix
-            write_weights (Tensor): Write weights
+            write_weights (Tensor:BATCH_SIZE x 1 x NR_CELLS): Write weights
 
         Returns:
             Tensor: The updated precedence matrix
@@ -281,8 +289,8 @@ class Memory(nn.Module):
         write_strength: Tensor,
         write_gate: Tensor,
         allocation_gate: Tensor,
-        hidden: HiddenState,
-    ) -> HiddenState:
+        hidden: MemoryHiddenState,
+    ) -> MemoryHiddenState:
         """Write into memory.
 
         Args:
@@ -290,14 +298,14 @@ class Memory(nn.Module):
             write_vector (Tensor): Write vector
             erase_vector (Tensor): Erase vector
             free_gates (Tensor): Free gates
-            read_strengths (Tensor): Read strengths
+            read_strengths (Tensor:BATCH_SIZE * NR_HEADS): Read strengths
             write_strength (Tensor): Write strength
-            write_gate (Tensor): Write gate
-            allocation_gate (Tensor): Allocation gate
-            hidden (HiddenState): Hidden state
+            write_gate (Tensor:BATCH_SIZE * 1): Write gate
+            allocation_gate (Tensor:BATCH_SIZE * 1): Allocation gate
+            hidden (MemoryHiddenState): Hidden state
 
         Returns:
-            HiddenState: Modified (written) hidden state
+            MemoryHiddenState: Modified (written) hidden state
         """
         # get current usage
         hidden["usage_vector"] = self.get_usage_vector(
@@ -308,37 +316,42 @@ class Memory(nn.Module):
         )
 
         # lookup memory with write_key and write_strength
-        write_content_weights = self.content_weightings(hidden["memory"], write_key,
-                                                        write_strength)
+        write_content_weights = self.content_weightings(
+            hidden["memory"], write_key, write_strength
+        )
 
         # get memory allocation
         alloc, _ = self.allocate(hidden["usage_vector"], allocation_gate * write_gate)
 
         # get write weightings
-        hidden["write_weights"] = self.write_weighting(hidden["memory"], write_content_weights,
-                                                       alloc, write_gate, allocation_gate)
+        hidden["write_weights"] = self.write_weighting(
+            hidden["memory"], write_content_weights, alloc, write_gate, allocation_gate
+        )
 
         weighted_resets = hidden["write_weights"].unsqueeze(3) * erase_vector.unsqueeze(2)
         reset_gate = T.prod(1 - weighted_resets, 1)
         # Update memory
         hidden["memory"] = hidden["memory"] * reset_gate
 
-        hidden["memory"] = hidden["memory"] + T.bmm(hidden["write_weights"].transpose(1, 2),
-                                                    write_vector)
+        hidden["memory"] = hidden["memory"] + T.bmm(
+            hidden["write_weights"].transpose(1, 2), write_vector
+        )
 
         # update link_matrix
-        hidden["link_matrix"] = self.get_link_matrix(hidden["link_matrix"],
-                                                     hidden["write_weights"], hidden["precedence"])
-        hidden["precedence"] = self.update_precedence(hidden["precedence"],
-                                                      hidden["write_weights"])
+        hidden["link_matrix"] = self.get_link_matrix(
+            hidden["link_matrix"], hidden["write_weights"], hidden["precedence"]
+        )
+        hidden["precedence"] = self.update_precedence(
+            hidden["precedence"], hidden["write_weights"]
+        )
 
         return hidden
 
     def content_weightings(self, memory: Tensor, keys: Tensor, strengths: Tensor) -> Tensor:
-        """Get content weightings.
+        """Get content weightings for a given set of search keys.
 
         Args:
-            memory (Tensor): The Memory tensor
+            memory (Tensor:NR_CELLS * CELL_SIZE): The Memory tensor
             keys (Tensor): Keys
             strengths (Tensor): Strengths
 
@@ -348,12 +361,14 @@ class Memory(nn.Module):
         d = θ(memory, keys)
         return σ(d * strengths.unsqueeze(2), 2)
 
-    def directional_weightings(self, link_matrix: Tensor, read_weights: Tensor) -> Tensor:
+    def directional_weightings(
+        self, link_matrix: Tensor, read_weights: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         """Get directional weightings.
 
         Args:
-            link_matrix (Tensor): Link matrix
-            read_weights (Tensor): Read weights
+            link_matrix (Tensor:NR_CELLS * NR_CELLS): Link matrix
+            read_weights (Tensor:BATCH_SIZE * NR_HEADS): Read weights
 
         Returns:
             Tensor: Directional weightings tensor
@@ -375,11 +390,11 @@ class Memory(nn.Module):
         """Get read weightings.
 
         Args:
-            memory (Tensor): The memory tensor
+            memory (Tensor:NR_CELLS * CELL_SIZE): The memory tensor
             content_weights (Tensor): Content weightings
-            link_matrix (Tensor): Link matrix
-            read_modes (Tensor): Read modes tensor
-            read_weights (Tensor): Read weights
+            link_matrix (Tensor:NR_CELLS * NR_CELLS): Link matrix
+            read_modes (Tensor:BATCH_SIZE * NR_HEADS * 3): Read modes tensor
+            read_weights (Tensor:BATCH_SIZE * NR_HEADS): Read weights
 
         Returns:
             Tensor: Read weightings
@@ -396,26 +411,31 @@ class Memory(nn.Module):
         """Get read vectors.
 
         Args:
-            memory (Tensor): The memory tensor
-            read_weights (Tensor): Read weights
+            memory (Tensor:NR_CELLS * CELL_SIZE): The memory tensor
+            read_weights (Tensor:BATCH_SIZE * NR_HEADS): Read weights
 
         Returns:
             Tensor: Read vectors
         """
         return T.bmm(read_weights, memory)
 
-    def read(self, read_keys: Tensor, read_strengths: Tensor, read_modes: Tensor,
-             hidden: HiddenState) -> tuple[Tensor, HiddenState]:
+    def read(
+        self,
+        read_keys: Tensor,
+        read_strengths: Tensor,
+        read_modes: Tensor,
+        hidden: MemoryHiddenState,
+    ) -> tuple[Tensor, MemoryHiddenState]:
         """Read from memory.
 
         Args:
-            read_keys (Tensor): Keys to read
-            read_strengths (Tensor): Read strength
-            read_modes (Tensor): Read modes
-            hidden (HiddenState): Hidden state dict
+            read_keys (Tensor:BATCH_SIZE * NR_HEADS * CELL_SIZE): Keys to read
+            read_strengths (Tensor:BATCH_SIZE * NR_HEADS): Read strength
+            read_modes (Tensor:BATCH_SIZE * NR_HEADS * 3): Read modes
+            hidden (MemoryHiddenState): Hidden state dict
 
         Returns:
-            tuple[Tensor, HiddenState]: Read tensors and the updated hidden state
+            tuple[Tensor, MemoryHiddenState]: Read tensors and the updated hidden state
         """
         content_weights = self.content_weightings(hidden["memory"], read_keys, read_strengths)
 
@@ -429,14 +449,14 @@ class Memory(nn.Module):
         read_vectors = self.read_vectors(hidden["memory"], hidden["read_weights"])
         return read_vectors, hidden
 
-    def forward(self, ξ: Tensor, hidden: HiddenState) -> tuple[Tensor, HiddenState]:
+    def forward(self, ξ: Tensor, hidden: MemoryHiddenState) -> tuple[Tensor, MemoryHiddenState]:
         """Forward pass through memory.
 
         Args:
-            hidden (HiddenState): The hidden state dict
+            hidden (MemoryHiddenState): The hidden state dict
 
         Returns:
-            tuple[Tensor, HiddenState]: Read tensors and the updated hidden state
+            tuple[Tensor, MemoryHiddenState]: Read tensors and the updated hidden state
         """
 
         m = self.nr_cells
@@ -445,58 +465,61 @@ class Memory(nn.Module):
         b = ξ.size()[0]
 
         if self.independent_linears:
-            # r read keys (b * r * w)
+            # NR_HEADS read keys (BATCH_SIZE * NR_HEADS * CELL_SIZE)
             read_keys = T.tanh(self.read_keys_transform(ξ).view(b, r, w))
-            # r read strengths (b * r)
+            # NR_HEADS read strengths (BATCH_SIZE * NR_HEADS)
             read_strengths = F.softplus(self.read_strengths_transform(ξ).view(b, r))
-            # write key (b * 1 * w)
+            # write key (BATCH_SIZE * 1 * CELL_SIZE)
             write_key = T.tanh(self.write_key_transform(ξ).view(b, 1, w))
-            # write strength (b * 1)
+            # write strength (BATCH_SIZE * 1)
             write_strength = F.softplus(self.write_strength_transform(ξ).view(b, 1))
-            # erase vector (b * 1 * w)
+            # erase vector (BATCH_SIZE * 1 * CELL_SIZE)
             erase_vector = T.sigmoid(self.erase_vector_transform(ξ).view(b, 1, w))
-            # write vector (b * 1 * w)
+            # write vector (BATCH_SIZE * 1 * CELL_SIZE)
             write_vector = T.tanh(self.write_vector_transform(ξ).view(b, 1, w))
-            # r free gates (b * r)
+            # NR_HEADS free gates (BATCH_SIZE * NR_HEADS)
             free_gates = T.sigmoid(self.free_gates_transform(ξ).view(b, r))
-            # allocation gate (b * 1)
+            # allocation gate (BATCH_SIZE * 1)
             allocation_gate = T.sigmoid(self.allocation_gate_transform(ξ).view(b, 1))
-            # write gate (b * 1)
+            # write gate (BATCH_SIZE * 1)
             write_gate = T.sigmoid(self.write_gate_transform(ξ).view(b, 1))
-            # read modes (b * r * 3)
+            # read modes (BATCH_SIZE * NR_HEADS * 3)
             read_modes = σ(self.read_modes_transform(ξ).view(b, r, 3), -1)
         else:
             ξ = self.interface_weights(ξ)
-            # r read keys (b * w * r)
-            read_keys = T.tanh(ξ[:, :r * w].contiguous().view(b, r, w))
-            # r read strengths (b * r)
-            read_strengths = F.softplus(ξ[:, r * w:r * w + r].contiguous().view(b, r))
-            # write key (b * w * 1)
-            write_key = T.tanh(ξ[:, r * w + r:r * w + r + w].contiguous().view(b, 1, w))
-            # write strength (b * 1)
+            # NR_HEADS read keys (BATCH_SIZE * CELL_SIZE * NR_HEADS)
+            read_keys = T.tanh(ξ[:, : r * w].contiguous().view(b, r, w))
+            # NR_HEADS read strengths (BATCH_SIZE * NR_HEADS)
+            read_strengths = F.softplus(ξ[:, r * w : r * w + r].contiguous().view(b, r))
+            # write key (BATCH_SIZE * CELL_SIZE * 1)
+            write_key = T.tanh(ξ[:, r * w + r : r * w + r + w].contiguous().view(b, 1, w))
+            # write strength (BATCH_SIZE * 1)
             write_strength = F.softplus(ξ[:, r * w + r + w].contiguous().view(b, 1))
-            # erase vector (b * w)
-            erase_vector = T.sigmoid(ξ[:,
-                                       r * w + r + w + 1:r * w + r + 2 * w + 1].contiguous().view(
-                                           b, 1, w))
-            # write vector (b * w)
-            write_vector = T.tanh(ξ[:,
-                                    r * w + r + 2 * w + 1:r * w + r + 3 * w + 1].contiguous().view(
-                                        b, 1, w))
-            # r free gates (b * r)
-            free_gates = T.sigmoid(ξ[:, r * w + r + 3 * w + 1:r * w + 2 * r + 3 * w
-                                     + 1].contiguous().view(b, r))
-            # allocation gate (b * 1)
-            allocation_gate = T.sigmoid(ξ[:, r * w + 2 * r + 3 * w
-                                          + 1].contiguous().unsqueeze(1).view(b, 1))
-            # write gate (b * 1)
-            write_gate = (T.sigmoid(ξ[:,
-                                      r * w + 2 * r + 3 * w + 2].contiguous()).unsqueeze(1).view(
-                                          b, 1))
-            # read modes (b * 3*r)
+            # erase vector (BATCH_SIZE * CELL_SIZE)
+            erase_vector = T.sigmoid(
+                ξ[:, r * w + r + w + 1 : r * w + r + 2 * w + 1].contiguous().view(b, 1, w)
+            )
+            # write vector (BATCH_SIZE * CELL_SIZE)
+            write_vector = T.tanh(
+                ξ[:, r * w + r + 2 * w + 1 : r * w + r + 3 * w + 1].contiguous().view(b, 1, w)
+            )
+            # NR_HEADS free gates (BATCH_SIZE * NR_HEADS)
+            free_gates = T.sigmoid(
+                ξ[:, r * w + r + 3 * w + 1 : r * w + 2 * r + 3 * w + 1].contiguous().view(b, r)
+            )
+            # allocation gate (BATCH_SIZE * 1)
+            allocation_gate = T.sigmoid(
+                ξ[:, r * w + 2 * r + 3 * w + 1].contiguous().unsqueeze(1).view(b, 1)
+            )
+            # write gate (BATCH_SIZE * 1)
+            write_gate = (
+                T.sigmoid(ξ[:, r * w + 2 * r + 3 * w + 2].contiguous()).unsqueeze(1).view(b, 1)
+            )
+            # read modes (BATCH_SIZE * 3*r)
             read_modes = σ(
-                ξ[:,
-                  r * w + 2 * r + 3 * w + 3:r * w + 5 * r + 3 * w + 3].contiguous().view(b, r, 3),
+                ξ[:, r * w + 2 * r + 3 * w + 3 : r * w + 5 * r + 3 * w + 3]
+                .contiguous()
+                .view(b, r, 3),
                 -1,
             )
 
