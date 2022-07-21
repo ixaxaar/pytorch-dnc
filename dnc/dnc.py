@@ -13,12 +13,13 @@ from .memory import *
 from .util import *
 
 
-ControllerHiddenState = List[Tensor | Tuple[Tensor, Tensor]]
+ControllerHiddenState = Tensor | Tuple[Tensor, Tensor]
 DNCHiddenState = Tuple[
-    Optional[ControllerHiddenState],
-    Optional[List[MemoryHiddenState]],
-    Optional[Tensor],
+    List[ControllerHiddenState],
+    List[MemoryHiddenState],
+    Tensor,
 ]
+LayerHiddenState = Tuple[ControllerHiddenState, MemoryHiddenState, Tensor | None]
 
 
 class DNC(nn.Module):
@@ -176,12 +177,14 @@ class DNC(nn.Module):
         self, hx: Optional[DNCHiddenState], batch_size: int, reset_experience: bool
     ) -> DNCHiddenState:
         # create empty hidden states if not provided
-        if hx is None:
-            hx = (None, None, None)
-        (chx, mhx, last_read) = hx
+        if hx:
+            (chx, mhx, last_read) = hx
+            init_hidden = False
+        else:
+            init_hidden = True
 
         # initialize hidden state of the controller RNN
-        if chx is None:
+        if init_hidden:
             h: Tensor = cuda(
                 T.zeros(self.num_hidden_layers, batch_size, self.output_size),
                 gpu_id=self.gpu_id,
@@ -193,12 +196,12 @@ class DNC(nn.Module):
             ]
 
         # Last read vectors
-        if last_read is None:
+        if init_hidden:
             last_read = cuda(T.zeros(batch_size, self.w * self.r), gpu_id=self.gpu_id)
 
         # memory states
         if self.memories:
-            if mhx is None:
+            if init_hidden:
                 if self.share_memory_between_layers:
                     mhx = [self.memories[0].reset(batch_size, erase=reset_experience)]
                 else:
@@ -239,9 +242,9 @@ class DNC(nn.Module):
         self,
         input: Tensor,
         layer: int,
-        hx: DNCHiddenState = (None, None, None),
+        hx: LayerHiddenState,
         pass_through_memory=True,
-    ) -> Tuple[Tensor, DNCHiddenState]:
+    ) -> Tuple[Tensor, LayerHiddenState]:
 
         (chx, mhx, _) = hx
 
@@ -261,7 +264,7 @@ class DNC(nn.Module):
         # pass through memory
         if pass_through_memory:
             if self.share_memory_between_layers and mhx:
-                read_vecs, mhx = self.memories[0](ξ, mhx[0])
+                read_vecs, mhx = self.memories[0](ξ, mhx)
             else:
                 read_vecs, mhx = self.memories[layer](ξ, mhx)
             # the read vectors
@@ -274,7 +277,7 @@ class DNC(nn.Module):
     def forward(
         self,
         input: Tensor | PackedSequence,
-        hx: DNCHiddenState = (None, None, None),
+        hx: DNCHiddenState,
         reset_experience=False,
         pass_through_memory=True,
     ):
@@ -300,8 +303,6 @@ class DNC(nn.Module):
         controller_hidden, mem_hidden, last_read = self._init_hidden(
             hx, batch_size, reset_experience
         )
-        if not controller_hidden or not mem_hidden or not last_read:
-            return None
 
         # concat input with last read (or padding) vectors
         inputs = [T.cat([inputTensor[:, x, :], last_read], 1) for x in range(max_length)]
@@ -310,7 +311,7 @@ class DNC(nn.Module):
         if self.debug:
             viz = None
 
-        outs: List[Tensor] | List[None] = [None] * max_length
+        outs: List[Any] = [None] * max_length
         read_vectors = None
 
         # pass through time
@@ -318,26 +319,31 @@ class DNC(nn.Module):
             # pass thorugh layers
             for layer in range(self.num_layers):
                 # this layer's hidden states
-                chx = controller_hidden[layer]
-                m = mem_hidden if self.share_memory_between_layers else mem_hidden[layer]
+                chx_layer: ControllerHiddenState = controller_hidden[layer]
+                mem_layer: MemoryHiddenState = (
+                    mem_hidden[0] if self.share_memory_between_layers else mem_hidden[layer]
+                )
                 # pass through controller
-                # type: ignore
-                outs[time], (chx, m, read_vectors) = self._layer_forward(
-                    inputs[time], layer, (chx, m, read_vectors), pass_through_memory
+                outs[time], (
+                    chx_layer_output,
+                    mem_layer_output,
+                    read_vectors,
+                ) = self._layer_forward(
+                    inputs[time], layer, (chx_layer, mem_layer, read_vectors), pass_through_memory
                 )
 
                 # debug memory
                 if self.debug:
-                    viz = self._debug(m, viz)
+                    viz = self._debug(mem_layer_output, viz)
 
                 # store the memory back (per layer or shared)
                 if self.share_memory_between_layers:
                     # type: ignore
-                    mem_hidden = m
+                    mem_hidden[0] = mem_layer_output
                 else:
                     # type: ignore
-                    mem_hidden[layer] = m
-                controller_hidden[layer] = chx
+                    mem_hidden[layer] = mem_layer_output
+                controller_hidden[layer] = chx_layer_output
 
                 if read_vectors is not None:
                     # the controller output + read vectors go into next layer
@@ -346,7 +352,7 @@ class DNC(nn.Module):
                     outs[time] = T.cat([outs[time], last_read], 1)
                 inputs[time] = outs[time]
 
-        if self.debug:
+        if self.debug and viz:
             viz = {k: np.array(v) for k, v in viz.items()}
             viz = {k: v.reshape(v.shape[0], v.shape[1] * v.shape[2]) for k, v in viz.items()}
 
@@ -354,13 +360,21 @@ class DNC(nn.Module):
         inputs = [self.output(i) for i in inputs]
         outputs = T.stack(inputs, 1 if self.batch_first else 0)
 
-        if is_packed:
-            outputs = pack(outputs, lengths)
+        if type(input) is PackedSequence and type(lengths) is Tensor:
+            packed_outputs = pack(outputs, lengths)
 
         if self.debug:
-            return outputs, (controller_hidden, mem_hidden, read_vectors), viz
+            return (
+                packed_outputs if type(input) is PackedSequence else outputs,
+                (controller_hidden, mem_hidden, read_vectors),
+                viz,
+            )
         else:
-            return outputs, (controller_hidden, mem_hidden, read_vectors)
+            return packed_outputs if type(input) is PackedSequence else outputs, (
+                controller_hidden,
+                mem_hidden,
+                read_vectors,
+            )
 
     def __repr__(self):
         s = "\n----------------------------------------\n"
