@@ -9,16 +9,18 @@ from faiss import cast_integer_to_long_ptr as cast_long
 from .util import *
 
 
-class FAISSIndex(object):
-    def __init__(self,
-                 cell_size=20,
-                 nr_cells=1024,
-                 K=4,
-                 num_lists=32,
-                 probes=32,
-                 res=None,
-                 train=None,
-                 gpu_id=-1):
+class FAISSIndex:
+    def __init__(
+        self,
+        cell_size: int = 20,
+        nr_cells: int = 1024,
+        K: int = 4,
+        num_lists: int = 32,
+        probes: int = 32,
+        res=None,
+        train=None,
+        gpu_id: int = -1,
+    ):
         super(FAISSIndex, self).__init__()
         self.cell_size = cell_size
         self.nr_cells = nr_cells
@@ -36,12 +38,13 @@ class FAISSIndex(object):
         nr_samples = self.nr_cells * 100 * self.cell_size
         train = train if train is not None else T.randn(self.nr_cells * 100, self.cell_size)
 
-        self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.num_lists,
-                                           faiss.METRIC_L2)
+        self.index = faiss.GpuIndexIVFFlat(
+            self.res, self.cell_size, self.num_lists, faiss.METRIC_L2
+        )
         self.index.setNumProbes(self.probes)
         self.train(train)
 
-    def cuda(self, gpu_id):
+    def cuda(self, gpu_id: int):
         self.gpu_id = gpu_id
 
     def train(self, train):
@@ -62,9 +65,11 @@ class FAISSIndex(object):
         if positions is not None:
             positions = ensure_gpu(positions, self.gpu_id)
             assert positions.size(0) == other.size(
-                0), "Mismatch in number of positions and vectors"
-            self.index.add_with_ids_c(other.size(0), cast_float(ptr(other)),
-                                      cast_long(ptr(positions + 1)))
+                0
+            ), "Mismatch in number of positions and vectors"
+            self.index.add_with_ids_c(
+                other.size(0), cast_float(ptr(other)), cast_long(ptr(positions + 1))
+            )
         else:
             other = other[:last, :] if last is not None else other
             self.index.add_c(other.size(0), cast_float(ptr(other)))
@@ -79,11 +84,14 @@ class FAISSIndex(object):
         distances = T.FloatTensor(b, k)
         labels = T.LongTensor(b, k)
 
-        if self.gpu_id != -1: distances = distances.cuda(self.gpu_id)
-        if self.gpu_id != -1: labels = labels.cuda(self.gpu_id)
+        if self.gpu_id != -1:
+            distances = distances.cuda(self.gpu_id)
+        if self.gpu_id != -1:
+            labels = labels.cuda(self.gpu_id)
 
         T.cuda.synchronize()
-        self.index.search_c(b, cast_float(ptr(query)), k, cast_float(ptr(distances)),
-                            cast_long(ptr(labels)))
+        self.index.search_c(
+            b, cast_float(ptr(query)), k, cast_float(ptr(distances)), cast_long(ptr(labels))
+        )
         T.cuda.synchronize()
         return (distances, (labels - 1))

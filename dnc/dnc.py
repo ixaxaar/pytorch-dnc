@@ -13,13 +13,13 @@ from .memory import *
 from .util import *
 
 
-ControllerHiddenState = Tensor | Tuple[Tensor, Tensor]
-DNCHiddenState = Tuple[
+ControllerHiddenState: TypeAlias = Tensor | Tuple[Tensor, Tensor]
+DNCHiddenState: TypeAlias = Tuple[
     List[ControllerHiddenState],
     List[MemoryHiddenState],
     Tensor,
 ]
-LayerHiddenState = Tuple[ControllerHiddenState, MemoryHiddenState, Tensor | None]
+LayerHiddenState: TypeAlias = Tuple[ControllerHiddenState, MemoryHiddenState, Tensor | None]
 
 
 class DNC(nn.Module):
