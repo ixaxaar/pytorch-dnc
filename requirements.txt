@@ -1,4 +1,4 @@
 pyflann3>=1.8.4.1
-torch==1.0.1.post2
+torch==2.2.0
 numpy>=1.13.3
 pytest>=3.0.0
