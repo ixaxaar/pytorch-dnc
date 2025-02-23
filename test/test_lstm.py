@@ -17,7 +17,8 @@ import os
 import math
 import time
 import functools
-sys.path.insert(0, '.')
+
+sys.path.insert(0, ".")
 
 from dnc import DNC
 from test_utils import generate_data, criterion
@@ -28,33 +29,35 @@ def test_rnn_1():
 
     input_size = 100
     hidden_size = 100
-    rnn_type = 'lstm'
+    rnn_type = "lstm"
     num_layers = 1
     num_hidden_layers = 1
     dropout = 0
     nr_cells = 1
     cell_size = 1
     read_heads = 1
-    gpu_id = -1
+    device = -1
     debug = True
     lr = 0.001
     sequence_max_length = 10
     batch_size = 10
-    cuda = gpu_id
+    cuda = device
     clip = 10
     length = 10
 
-    rnn = DNC(input_size=input_size,
-              hidden_size=hidden_size,
-              rnn_type=rnn_type,
-              num_layers=num_layers,
-              num_hidden_layers=num_hidden_layers,
-              dropout=dropout,
-              nr_cells=nr_cells,
-              cell_size=cell_size,
-              read_heads=read_heads,
-              gpu_id=gpu_id,
-              debug=debug)
+    rnn = DNC(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        rnn_type=rnn_type,
+        num_layers=num_layers,
+        num_hidden_layers=num_hidden_layers,
+        dropout=dropout,
+        nr_cells=nr_cells,
+        cell_size=cell_size,
+        read_heads=read_heads,
+        device=device,
+        debug=debug,
+    )
 
     optimizer = optim.Adam(rnn.parameters(), lr=lr)
     optimizer.zero_grad()
@@ -73,7 +76,7 @@ def test_rnn_1():
 
     assert target_output.size() == T.Size([21, 10, 100])
     assert chx[0][0][0].size() == T.Size([10, 100])
-    assert mhx['memory'].size() == T.Size([10, 1, 1])
+    assert mhx["memory"].size() == T.Size([10, 1, 1])
     assert rv.size() == T.Size([10, 1])
 
 
@@ -82,33 +85,35 @@ def test_rnn_n():
 
     input_size = 100
     hidden_size = 100
-    rnn_type = 'lstm'
+    rnn_type = "lstm"
     num_layers = 3
     num_hidden_layers = 5
     dropout = 0.2
     nr_cells = 12
     cell_size = 17
     read_heads = 3
-    gpu_id = -1
+    device = -1
     debug = True
     lr = 0.001
     sequence_max_length = 10
     batch_size = 10
-    cuda = gpu_id
+    cuda = device
     clip = 20
     length = 13
 
-    rnn = DNC(input_size=input_size,
-              hidden_size=hidden_size,
-              rnn_type=rnn_type,
-              num_layers=num_layers,
-              num_hidden_layers=num_hidden_layers,
-              dropout=dropout,
-              nr_cells=nr_cells,
-              cell_size=cell_size,
-              read_heads=read_heads,
-              gpu_id=gpu_id,
-              debug=debug)
+    rnn = DNC(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        rnn_type=rnn_type,
+        num_layers=num_layers,
+        num_hidden_layers=num_hidden_layers,
+        dropout=dropout,
+        nr_cells=nr_cells,
+        cell_size=cell_size,
+        read_heads=read_heads,
+        device=device,
+        debug=debug,
+    )
 
     optimizer = optim.Adam(rnn.parameters(), lr=lr)
     optimizer.zero_grad()
@@ -127,7 +132,7 @@ def test_rnn_n():
 
     assert target_output.size() == T.Size([27, 10, 100])
     assert chx[0][0].size() == T.Size([num_hidden_layers, 10, 100])
-    assert mhx['memory'].size() == T.Size([10, 12, 17])
+    assert mhx["memory"].size() == T.Size([10, 12, 17])
     assert rv.size() == T.Size([10, 51])
 
 
@@ -136,33 +141,35 @@ def test_rnn_no_memory_pass():
 
     input_size = 100
     hidden_size = 100
-    rnn_type = 'lstm'
+    rnn_type = "lstm"
     num_layers = 3
     num_hidden_layers = 5
     dropout = 0.2
     nr_cells = 12
     cell_size = 17
     read_heads = 3
-    gpu_id = -1
+    device = -1
     debug = True
     lr = 0.001
     sequence_max_length = 10
     batch_size = 10
-    cuda = gpu_id
+    cuda = device
     clip = 20
     length = 13
 
-    rnn = DNC(input_size=input_size,
-              hidden_size=hidden_size,
-              rnn_type=rnn_type,
-              num_layers=num_layers,
-              num_hidden_layers=num_hidden_layers,
-              dropout=dropout,
-              nr_cells=nr_cells,
-              cell_size=cell_size,
-              read_heads=read_heads,
-              gpu_id=gpu_id,
-              debug=debug)
+    rnn = DNC(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        rnn_type=rnn_type,
+        num_layers=num_layers,
+        num_hidden_layers=num_hidden_layers,
+        dropout=dropout,
+        nr_cells=nr_cells,
+        cell_size=cell_size,
+        read_heads=read_heads,
+        device=device,
+        debug=debug,
+    )
 
     optimizer = optim.Adam(rnn.parameters(), lr=lr)
     optimizer.zero_grad()
@@ -186,5 +193,5 @@ def test_rnn_no_memory_pass():
 
     assert target_output.size() == T.Size([27, 10, 100])
     assert chx[0][0].size() == T.Size([num_hidden_layers, 10, 100])
-    assert mhx['memory'].size() == T.Size([10, 12, 17])
+    assert mhx["memory"].size() == T.Size([10, 12, 17])
     assert rv == None

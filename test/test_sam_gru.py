@@ -18,7 +18,8 @@ import os
 import math
 import time
 import functools
-sys.path.insert(0, '.')
+
+sys.path.insert(0, ".")
 
 from dnc import SAM
 from test_utils import generate_data, criterion
@@ -29,7 +30,7 @@ def test_rnn_1():
 
     input_size = 100
     hidden_size = 100
-    rnn_type = 'gru'
+    rnn_type = "gru"
     num_layers = 1
     num_hidden_layers = 1
     dropout = 0
@@ -37,27 +38,29 @@ def test_rnn_1():
     cell_size = 10
     read_heads = 1
     sparse_reads = 2
-    gpu_id = -1
+    device = -1
     debug = True
     lr = 0.001
     sequence_max_length = 10
     batch_size = 10
-    cuda = gpu_id
+    cuda = device
     clip = 10
     length = 10
 
-    rnn = SAM(input_size=input_size,
-              hidden_size=hidden_size,
-              rnn_type=rnn_type,
-              num_layers=num_layers,
-              num_hidden_layers=num_hidden_layers,
-              dropout=dropout,
-              nr_cells=nr_cells,
-              cell_size=cell_size,
-              read_heads=read_heads,
-              sparse_reads=sparse_reads,
-              gpu_id=gpu_id,
-              debug=debug)
+    rnn = SAM(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        rnn_type=rnn_type,
+        num_layers=num_layers,
+        num_hidden_layers=num_hidden_layers,
+        dropout=dropout,
+        nr_cells=nr_cells,
+        cell_size=cell_size,
+        read_heads=read_heads,
+        sparse_reads=sparse_reads,
+        device=device,
+        debug=debug,
+    )
 
     optimizer = optim.Adam(rnn.parameters(), lr=lr)
     optimizer.zero_grad()
@@ -85,7 +88,7 @@ def test_rnn_n():
 
     input_size = 100
     hidden_size = 100
-    rnn_type = 'gru'
+    rnn_type = "gru"
     num_layers = 3
     num_hidden_layers = 5
     dropout = 0.2
@@ -93,27 +96,29 @@ def test_rnn_n():
     cell_size = 17
     read_heads = 2
     sparse_reads = 4
-    gpu_id = -1
+    device = -1
     debug = True
     lr = 0.001
     sequence_max_length = 10
     batch_size = 10
-    cuda = gpu_id
+    cuda = device
     clip = 20
     length = 13
 
-    rnn = SAM(input_size=input_size,
-              hidden_size=hidden_size,
-              rnn_type=rnn_type,
-              num_layers=num_layers,
-              num_hidden_layers=num_hidden_layers,
-              dropout=dropout,
-              nr_cells=nr_cells,
-              cell_size=cell_size,
-              read_heads=read_heads,
-              sparse_reads=sparse_reads,
-              gpu_id=gpu_id,
-              debug=debug)
+    rnn = SAM(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        rnn_type=rnn_type,
+        num_layers=num_layers,
+        num_hidden_layers=num_hidden_layers,
+        dropout=dropout,
+        nr_cells=nr_cells,
+        cell_size=cell_size,
+        read_heads=read_heads,
+        sparse_reads=sparse_reads,
+        device=device,
+        debug=debug,
+    )
 
     optimizer = optim.Adam(rnn.parameters(), lr=lr)
     optimizer.zero_grad()
@@ -141,33 +146,35 @@ def test_rnn_no_memory_pass():
 
     input_size = 100
     hidden_size = 100
-    rnn_type = 'gru'
+    rnn_type = "gru"
     num_layers = 3
     num_hidden_layers = 5
     dropout = 0.2
     nr_cells = 5000
     cell_size = 17
     sparse_reads = 3
-    gpu_id = -1
+    device = -1
     debug = True
     lr = 0.001
     sequence_max_length = 10
     batch_size = 10
-    cuda = gpu_id
+    cuda = device
     clip = 20
     length = 13
 
-    rnn = SAM(input_size=input_size,
-              hidden_size=hidden_size,
-              rnn_type=rnn_type,
-              num_layers=num_layers,
-              num_hidden_layers=num_hidden_layers,
-              dropout=dropout,
-              nr_cells=nr_cells,
-              cell_size=cell_size,
-              sparse_reads=sparse_reads,
-              gpu_id=gpu_id,
-              debug=debug)
+    rnn = SAM(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        rnn_type=rnn_type,
+        num_layers=num_layers,
+        num_hidden_layers=num_hidden_layers,
+        dropout=dropout,
+        nr_cells=nr_cells,
+        cell_size=cell_size,
+        sparse_reads=sparse_reads,
+        device=device,
+        debug=debug,
+    )
 
     optimizer = optim.Adam(rnn.parameters(), lr=lr)
     optimizer.zero_grad()

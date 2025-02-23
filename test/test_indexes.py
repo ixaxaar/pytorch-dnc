@@ -17,7 +17,8 @@ import os
 import math
 import time
 import functools
-sys.path.insert(0, '.')
+
+sys.path.insert(0, ".")
 
 from pyflann import *
 
@@ -34,9 +35,9 @@ def test_indexes():
     d = T.ones(n, cell_size)
     q = T.ones(1, cell_size)
 
-    for gpu_id in (-1, -1):
-        i = FLANNIndex(cell_size=cell_size, nr_cells=nr_cells, K=K, probes=probes, gpu_id=gpu_id)
-        d = d if gpu_id == -1 else d.cuda(gpu_id)
+    for device in (-1, -1):
+        i = FLANNIndex(cell_size=cell_size, nr_cells=nr_cells, K=K, probes=probes, device=device)
+        d = d if device == -1 else d.cuda(device)
 
         i.add(d)
 
