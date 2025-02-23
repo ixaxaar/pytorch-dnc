@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import torch as T
-import torch.nn as nn
 from pyflann import *
 from torch.autograd import Variable as var
 

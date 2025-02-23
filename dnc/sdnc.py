@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import torch
-import torch.nn as nn
 
 from .dnc import DNC
 from .sparse_temporal_memory import SparseTemporalMemory

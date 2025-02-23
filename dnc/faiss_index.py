@@ -3,7 +3,6 @@
 
 import faiss
 from faiss import cast_integer_to_float_ptr as cast_float
-from faiss import cast_integer_to_int_ptr as cast_int
 from faiss import cast_integer_to_long_ptr as cast_long
 
 import torch

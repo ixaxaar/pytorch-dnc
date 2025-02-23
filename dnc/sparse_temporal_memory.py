@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import time
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .util import cuda, σ, θ
 
