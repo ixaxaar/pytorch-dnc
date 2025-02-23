@@ -73,33 +73,33 @@ Following are the constructor parameters:
 
 Following are the constructor parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input_size | `None` | Size of the input vectors |
-| hidden_size | `None` | Size of hidden units |
-| rnn_type | `'lstm'` | Type of recurrent cells used in the controller |
-| num_layers | `1` | Number of layers of recurrent units in the controller |
-| num_hidden_layers | `2` | Number of hidden layers per layer of the controller |
-| bias | `True` | Bias |
-| batch_first | `True` | Whether data is fed batch first |
-| dropout | `0` | Dropout between layers in the controller |
-| bidirectional | `False` | If the controller is bidirectional (Not yet implemented |
-| nr_cells | `5` | Number of memory cells |
-| read_heads | `2` | Number of read heads |
-| cell_size | `10` | Size of each memory cell |
-| nonlinearity | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
-| gpu_id | `-1` | ID of the GPU, -1 for CPU |
-| independent_linears | `False` | Whether to use independent linear units to derive interface vector |
-| share_memory | `True` | Whether to share memory between controller layers |
+| Argument            | Default  | Description                                                        |
+|---------------------|----------|--------------------------------------------------------------------|
+| input_size          | `None`   | Size of the input vectors                                          |
+| hidden_size         | `None`   | Size of hidden units                                               |
+| rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                     |
+| num_layers          | `1`      | Number of layers of recurrent units in the controller              |
+| num_hidden_layers   | `2`      | Number of hidden layers per layer of the controller                |
+| bias                | `True`   | Bias                                                               |
+| batch_first         | `True`   | Whether data is fed batch first                                    |
+| dropout             | `0`      | Dropout between layers in the controller                           |
+| bidirectional       | `False`  | If the controller is bidirectional (Not yet implemented            |
+| nr_cells            | `5`      | Number of memory cells                                             |
+| read_heads          | `2`      | Number of read heads                                               |
+| cell_size           | `10`     | Size of each memory cell                                           |
+| nonlinearity        | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs            |
+| device              | `-1`     | ID of the GPU, -1 for CPU                                          |
+| independent_linears | `False`  | Whether to use independent linear units to derive interface vector |
+| share_memory        | `True`   | Whether to share memory between controller layers                  |
 
 Following are the forward pass parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input | - | The input vector `(B*T*X)` or `(T*B*X)` |
-| hidden | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
-| reset_experience | `False` | Whether to reset memory |
-| pass_through_memory | `True` | Whether to pass through memory |
+| Argument            | Default            | Description                                                      |
+|---------------------|--------------------|------------------------------------------------------------------|
+| input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
+| hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
+| reset_experience    | `False`            | Whether to reset memory                                          |
+| pass_through_memory | `True`             | Whether to pass through memory                                   |
 
 
 #### Example usage
@@ -116,7 +116,7 @@ rnn = DNC(
   cell_size=32,
   read_heads=4,
   batch_first=True,
-  gpu_id=0
+  device=0
 )
 
 (controller_hidden, memory, read_vectors) = (None, None, None)
@@ -143,7 +143,7 @@ rnn = DNC(
   cell_size=32,
   read_heads=4,
   batch_first=True,
-  gpu_id=0,
+  device=0,
   debug=True
 )
 
@@ -171,35 +171,35 @@ Memory vectors returned by forward pass (`np.ndarray`):
 
 Following are the constructor parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input_size | `None` | Size of the input vectors |
-| hidden_size | `None` | Size of hidden units |
-| rnn_type | `'lstm'` | Type of recurrent cells used in the controller |
-| num_layers | `1` | Number of layers of recurrent units in the controller |
-| num_hidden_layers | `2` | Number of hidden layers per layer of the controller |
-| bias | `True` | Bias |
-| batch_first | `True` | Whether data is fed batch first |
-| dropout | `0` | Dropout between layers in the controller |
-| bidirectional | `False` | If the controller is bidirectional (Not yet implemented |
-| nr_cells | `5000` | Number of memory cells |
-| read_heads | `4` | Number of read heads |
-| sparse_reads | `4` | Number of sparse memory reads per read head |
-| temporal_reads | `4` | Number of temporal reads |
-| cell_size | `10` | Size of each memory cell |
-| nonlinearity | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
-| gpu_id | `-1` | ID of the GPU, -1 for CPU |
-| independent_linears | `False` | Whether to use independent linear units to derive interface vector |
-| share_memory | `True` | Whether to share memory between controller layers |
+| Argument            | Default  | Description                                                        |
+|---------------------|----------|--------------------------------------------------------------------|
+| input_size          | `None`   | Size of the input vectors                                          |
+| hidden_size         | `None`   | Size of hidden units                                               |
+| rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                     |
+| num_layers          | `1`      | Number of layers of recurrent units in the controller              |
+| num_hidden_layers   | `2`      | Number of hidden layers per layer of the controller                |
+| bias                | `True`   | Bias                                                               |
+| batch_first         | `True`   | Whether data is fed batch first                                    |
+| dropout             | `0`      | Dropout between layers in the controller                           |
+| bidirectional       | `False`  | If the controller is bidirectional (Not yet implemented            |
+| nr_cells            | `5000`   | Number of memory cells                                             |
+| read_heads          | `4`      | Number of read heads                                               |
+| sparse_reads        | `4`      | Number of sparse memory reads per read head                        |
+| temporal_reads      | `4`      | Number of temporal reads                                           |
+| cell_size           | `10`     | Size of each memory cell                                           |
+| nonlinearity        | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs            |
+| device              | `-1`     | ID of the GPU, -1 for CPU                                          |
+| independent_linears | `False`  | Whether to use independent linear units to derive interface vector |
+| share_memory        | `True`   | Whether to share memory between controller layers                  |
 
 Following are the forward pass parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input | - | The input vector `(B*T*X)` or `(T*B*X)` |
-| hidden | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
-| reset_experience | `False` | Whether to reset memory |
-| pass_through_memory | `True` | Whether to pass through memory |
+| Argument            | Default            | Description                                                      |
+|---------------------|--------------------|------------------------------------------------------------------|
+| input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
+| hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
+| reset_experience    | `False`            | Whether to reset memory                                          |
+| pass_through_memory | `True`             | Whether to pass through memory                                   |
 
 
 #### Example usage
@@ -217,7 +217,7 @@ rnn = SDNC(
   read_heads=4,
   sparse_reads=4,
   batch_first=True,
-  gpu_id=0
+  device=0
 )
 
 (controller_hidden, memory, read_vectors) = (None, None, None)
@@ -246,7 +246,7 @@ rnn = SDNC(
   batch_first=True,
   sparse_reads=4,
   temporal_reads=4,
-  gpu_id=0,
+  device=0,
   debug=True
 )
 
@@ -276,34 +276,34 @@ Memory vectors returned by forward pass (`np.ndarray`):
 
 Following are the constructor parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input_size | `None` | Size of the input vectors |
-| hidden_size | `None` | Size of hidden units |
-| rnn_type | `'lstm'` | Type of recurrent cells used in the controller |
-| num_layers | `1` | Number of layers of recurrent units in the controller |
-| num_hidden_layers | `2` | Number of hidden layers per layer of the controller |
-| bias | `True` | Bias |
-| batch_first | `True` | Whether data is fed batch first |
-| dropout | `0` | Dropout between layers in the controller |
-| bidirectional | `False` | If the controller is bidirectional (Not yet implemented |
-| nr_cells | `5000` | Number of memory cells |
-| read_heads | `4` | Number of read heads |
-| sparse_reads | `4` | Number of sparse memory reads per read head |
-| cell_size | `10` | Size of each memory cell |
-| nonlinearity | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
-| gpu_id | `-1` | ID of the GPU, -1 for CPU |
-| independent_linears | `False` | Whether to use independent linear units to derive interface vector |
-| share_memory | `True` | Whether to share memory between controller layers |
+| Argument            | Default  | Description                                                        |
+|---------------------|----------|--------------------------------------------------------------------|
+| input_size          | `None`   | Size of the input vectors                                          |
+| hidden_size         | `None`   | Size of hidden units                                               |
+| rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                     |
+| num_layers          | `1`      | Number of layers of recurrent units in the controller              |
+| num_hidden_layers   | `2`      | Number of hidden layers per layer of the controller                |
+| bias                | `True`   | Bias                                                               |
+| batch_first         | `True`   | Whether data is fed batch first                                    |
+| dropout             | `0`      | Dropout between layers in the controller                           |
+| bidirectional       | `False`  | If the controller is bidirectional (Not yet implemented            |
+| nr_cells            | `5000`   | Number of memory cells                                             |
+| read_heads          | `4`      | Number of read heads                                               |
+| sparse_reads        | `4`      | Number of sparse memory reads per read head                        |
+| cell_size           | `10`     | Size of each memory cell                                           |
+| nonlinearity        | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs            |
+| device              | `-1`     | ID of the GPU, -1 for CPU                                          |
+| independent_linears | `False`  | Whether to use independent linear units to derive interface vector |
+| share_memory        | `True`   | Whether to share memory between controller layers                  |
 
 Following are the forward pass parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input | - | The input vector `(B*T*X)` or `(T*B*X)` |
-| hidden | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
-| reset_experience | `False` | Whether to reset memory |
-| pass_through_memory | `True` | Whether to pass through memory |
+| Argument            | Default            | Description                                                      |
+|---------------------|--------------------|------------------------------------------------------------------|
+| input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
+| hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
+| reset_experience    | `False`            | Whether to reset memory                                          |
+| pass_through_memory | `True`             | Whether to pass through memory                                   |
 
 
 #### Example usage
@@ -321,7 +321,7 @@ rnn = SAM(
   read_heads=4,
   sparse_reads=4,
   batch_first=True,
-  gpu_id=0
+  device=0
 )
 
 (controller_hidden, memory, read_vectors) = (None, None, None)
@@ -349,7 +349,7 @@ rnn = SAM(
   read_heads=4,
   batch_first=True,
   sparse_reads=4,
-  gpu_id=0,
+  device=0,
   debug=True
 )
 
