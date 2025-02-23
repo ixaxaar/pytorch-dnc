@@ -1,26 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import pytest
-import numpy as np
 
-import torch.nn as nn
 import torch as T
-from torch.autograd import Variable as var
-import torch.nn.functional as F
-from torch.nn.utils import clip_grad_norm_
-import torch.optim as optim
-import numpy as np
 
 import sys
-import os
-import math
-import time
-import functools
 
 sys.path.insert(0, ".")
-
-from pyflann import *
 
 from dnc.flann_index import FLANNIndex
 
