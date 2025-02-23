@@ -21,10 +21,10 @@ def recursiveTrace(obj: torch.Tensor | torch.nn.Module | None) -> None:
     print(type(obj))
     if hasattr(obj, "grad_fn"):
         print(obj.grad_fn)
-        recursiveTrace(obj.grad_fn)
-    elif hasattr(obj, "next_functions"):  # Use next_functions for grad_fn tuples
-        print(obj.requires_grad, len(obj.next_functions))
-        for f, _ in obj.next_functions:  # next_functions is a tuple now
+        recursiveTrace(obj.grad_fn)  # type: ignore
+    elif hasattr(obj, "next_functions"):
+        print(obj.requires_grad, len(obj.next_functions))  # type: ignore
+        for f, _ in obj.next_functions:  # type: ignore
             recursiveTrace(f)
 
 
@@ -39,7 +39,7 @@ def cuda(x: torch.Tensor, requires_grad: bool = False, device: torch.device | No
     Returns:
         The tensor on the specified device.
     """
-    if device is None or device.type == "cpu":
+    if device is None:
         return x.float().requires_grad_(requires_grad)
     else:
         return x.float().to(device).requires_grad_(requires_grad)
@@ -118,7 +118,7 @@ def register_nan_checks(model: nn.Module) -> None:
             print(f"NaN gradient in grad_input of {type(module).__name__}")
 
     for module in model.modules():
-        module.register_full_backward_hook(check_grad)
+        module.register_full_backward_hook(check_grad)  # type: ignore
 
 
 def apply_dict(dic: dict) -> None:

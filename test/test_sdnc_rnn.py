@@ -29,7 +29,7 @@ def test_rnn_1():
     read_heads = 1
     sparse_reads = 2
     temporal_reads = 1
-    device = -1
+    device = None
     debug = True
     lr = 0.001
     sequence_max_length = 10
@@ -89,7 +89,7 @@ def test_rnn_n():
     read_heads = 2
     sparse_reads = 4
     temporal_reads = 3
-    device = -1
+    device = None
     debug = True
     lr = 0.001
     sequence_max_length = 10
@@ -148,7 +148,7 @@ def test_rnn_no_memory_pass():
     cell_size = 17
     sparse_reads = 3
     temporal_reads = 4
-    device = -1
+    device = None
     debug = True
     lr = 0.001
     sequence_max_length = 10

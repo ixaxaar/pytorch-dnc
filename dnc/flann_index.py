@@ -39,9 +39,9 @@ class FLANNIndex(object):
         distances = T.from_numpy(d).float()
         labels = T.from_numpy(l).long()
 
-        if self.device != -1:
+        if self.device is not None:
             distances = distances.cuda(self.device)
-        if self.device != -1:
+        if self.device is not None:
             labels = labels.cuda(self.device)
 
         return (distances, labels)
