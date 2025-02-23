@@ -11,14 +11,14 @@ from .util import *
 
 
 class FLANNIndex(object):
-    def __init__(self, cell_size=20, nr_cells=1024, K=4, num_kdtrees=32, probes=32, gpu_id=-1):
+    def __init__(self, cell_size=20, nr_cells=1024, K=4, num_kdtrees=32, probes=32, device=-1):
         super(FLANNIndex, self).__init__()
         self.cell_size = cell_size
         self.nr_cells = nr_cells
         self.probes = probes
         self.K = K
         self.num_kdtrees = num_kdtrees
-        self.gpu_id = gpu_id
+        self.device = device
 
         self.index = FLANN()
 
@@ -28,10 +28,7 @@ class FLANNIndex(object):
         elif isinstance(other, T.Tensor):
             other = other[:last, :].cpu().numpy()
 
-        self.index.build_index(other,
-                               algorithm='kdtree',
-                               trees=self.num_kdtrees,
-                               checks=self.probes)
+        self.index.build_index(other, algorithm="kdtree", trees=self.num_kdtrees, checks=self.probes)
 
     def search(self, query, k=None):
         if isinstance(query, var):
@@ -44,8 +41,10 @@ class FLANNIndex(object):
         distances = T.from_numpy(d).float()
         labels = T.from_numpy(l).long()
 
-        if self.gpu_id != -1: distances = distances.cuda(self.gpu_id)
-        if self.gpu_id != -1: labels = labels.cuda(self.gpu_id)
+        if self.device != -1:
+            distances = distances.cuda(self.device)
+        if self.device != -1:
+            labels = labels.cuda(self.device)
 
         return (distances, labels)
 
