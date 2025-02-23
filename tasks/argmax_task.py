@@ -7,7 +7,7 @@ import sys
 
 import numpy as np
 import torch
-import torch.nn.functional as F
+from typing import Any
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
 from visdom import Visdom
@@ -39,9 +39,9 @@ def generate_data(length: int, size: int, device: torch.device) -> tuple[torch.T
     content = np.random.randint(0, size - 1, length)
 
     seqlen = length + 1
-    x_seq = [onehot(val, size) if i < length else onehot(size - 1, size) for i, val in enumerate(content)]
+    x_seq = [onehot(int(val), size) if i < length else onehot(size - 1, size) for i, val in enumerate(content)]
     x_seq.append(onehot(size - 1, size))
-    x_seq = np.array(x_seq, dtype=np.float32).reshape(1, seqlen, size)
+    x_seq = np.array(x_seq, dtype=np.float32).reshape(1, seqlen, size)  # type: ignore
 
     max_ind = np.argmax(content)
     target_output = np.zeros((1, 1, 1), dtype=np.float32)
@@ -152,11 +152,12 @@ def main() -> None:
 
     rnn = rnn.to(device)
     print(rnn)
+    optimizer: Any
 
     if args.optim == "adam":
-        optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
+        optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=(0.9, 0.98))
     elif args.optim == "adamax":
-        optimizer = optim.Adamax(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
+        optimizer = optim.Adamax(rnn.parameters(), lr=args.lr, eps=1e-9, betas=(0.9, 0.98))
     elif args.optim == "rmsprop":
         optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, momentum=0.9, eps=1e-10)
     elif args.optim == "sgd":

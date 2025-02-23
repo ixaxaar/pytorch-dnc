@@ -8,6 +8,7 @@ import sys
 import numpy as np
 import torch
 import torch.nn.functional as F
+from typing import Any
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
 from visdom import Visdom
@@ -138,11 +139,12 @@ def main() -> None:
 
     rnn = rnn.to(device)
     print(rnn)
+    optimizer: Any
 
     if args.optim == "adam":
-        optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
+        optimizer = optim.Adam(rnn.parameters(), lr=args.lr, eps=1e-9, betas=(0.9, 0.98))
     elif args.optim == "adamax":
-        optimizer = optim.Adamax(rnn.parameters(), lr=args.lr, eps=1e-9, betas=[0.9, 0.98])
+        optimizer = optim.Adamax(rnn.parameters(), lr=args.lr, eps=1e-9, betas=(0.9, 0.98))
     elif args.optim == "rmsprop":
         optimizer = optim.RMSprop(rnn.parameters(), lr=args.lr, momentum=0.9, eps=1e-10)
     elif args.optim == "sgd":
