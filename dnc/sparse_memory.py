@@ -94,7 +94,7 @@ class SparseMemory(nn.Module):
             for x in hidden["indexes"]:
                 x.reset()
         else:
-            # create new indexes, try to use FAISS, fall back to FLANN
+            # create new indexes, try to use FAISS
             try:
                 from .faiss_index import FAISSIndex
 
@@ -111,21 +111,9 @@ class SparseMemory(nn.Module):
                 ]  # Use _ for unused loop var
             except ImportError:
                 print(
-                    "\nFalling back to FLANN (CPU). \nFor using faster, GPU based indexes, install FAISS: `conda install faiss-gpu -c pytorch`"
+                    "FAISS not found, please install FAISS, consult https://github.com/facebookresearch/faiss/blob/main/INSTALL.md"
                 )
-                from .flann_index import FLANNIndex
-
-                hidden["indexes"] = [
-                    FLANNIndex(
-                        cell_size=self.cell_size,
-                        nr_cells=self.mem_size,
-                        K=self.K,
-                        num_kdtrees=self.num_lists,
-                        probes=self.index_checks,
-                        device=self.device,
-                    )
-                    for _ in range(b)
-                ]
+                raise
 
         # add existing memory into indexes
         pos = hidden["read_positions"].squeeze().detach().cpu().numpy()

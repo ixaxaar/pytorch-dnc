@@ -9,25 +9,27 @@ Includes:
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of Contents
 
-- [Install](#install)
-  - [From source](#from-source)
-- [Architecure](#architecure)
-- [Usage](#usage)
-  - [DNC](#dnc)
-    - [Example usage](#example-usage)
-    - [Debugging](#debugging)
-  - [SDNC](#sdnc)
-    - [Example usage](#example-usage-1)
-    - [Debugging](#debugging-1)
-  - [SAM](#sam)
-    - [Example usage](#example-usage-2)
-    - [Debugging](#debugging-2)
-- [Tasks](#tasks)
-  - [Copy task (with curriculum and generalization)](#copy-task-with-curriculum-and-generalization)
-  - [Generalizing Addition task](#generalizing-addition-task)
-  - [Generalizing Argmax task](#generalizing-argmax-task)
-- [Code Structure](#code-structure)
-- [General noteworthy stuff](#general-noteworthy-stuff)
+- [Differentiable Neural Computers and family, for Pytorch](#differentiable-neural-computers-and-family-for-pytorch)
+  - [Table of Contents](#table-of-contents)
+  - [Install](#install)
+    - [From source](#from-source)
+  - [Architecure](#architecure)
+  - [Usage](#usage)
+    - [DNC](#dnc)
+      - [Example usage](#example-usage)
+      - [Debugging](#debugging)
+    - [SDNC](#sdnc)
+      - [Example usage](#example-usage-1)
+      - [Debugging](#debugging-1)
+    - [SAM](#sam)
+      - [Example usage](#example-usage-2)
+      - [Debugging](#debugging-2)
+  - [Tasks](#tasks)
+    - [Copy task (with curriculum and generalization)](#copy-task-with-curriculum-and-generalization)
+    - [Generalizing Addition task](#generalizing-addition-task)
+    - [Generalizing Argmax task](#generalizing-argmax-task)
+  - [Code Structure](#code-structure)
+  - [General noteworthy stuff](#general-noteworthy-stuff)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -446,30 +448,13 @@ python ./tasks/argmax_task.py -cuda 0 -lr 0.0001 -rnn_type lstm -memory_type dnc
 2. SDNCs:
   - [dnc/sdnc.py](dnc/sdnc.py) - Controller code, inherits [dnc.py](dnc/dnc.py).
   - [dnc/sparse_temporal_memory.py](dnc/sparse_temporal_memory.py) - Memory module.
-  - [dnc/flann_index.py](dnc/flann_index.py) - Memory index using kNN.
 3. SAMs:
   - [dnc/sam.py](dnc/sam.py) - Controller code, inherits [dnc.py](dnc/dnc.py).
   - [dnc/sparse_memory.py](dnc/sparse_memory.py) - Memory module.
-  - [dnc/flann_index.py](dnc/flann_index.py) - Memory index using kNN.
 4. Tests:
   - All tests are in [./tests](./tests) folder.
 
 ## General noteworthy stuff
-
-1. SDNCs use the [FLANN approximate nearest neigbhour library](https://github.com/mariusmuja/flann), with its python binding [pyflann3](https://github.com/primetang/pyflann) and [FAISS](https://github.com/facebookresearch/faiss).
-
-FLANN can be installed either from pip (automatically as a dependency), or from source (e.g. for multithreading via OpenMP):
-
-```bash
-# install openmp first: e.g. `sudo pacman -S openmp` for Arch.
-git clone git://github.com/mariusmuja/flann.git
-cd flann
-mkdir build
-cd build
-cmake ..
-make -j 4
-sudo make install
-```
 
 FAISS can be installed using:
 
@@ -478,9 +463,8 @@ conda install faiss-gpu -c pytorch
 ```
 
 FAISS is much faster, has a GPU implementation and is interoperable with pytorch tensors.
-We try to use FAISS by default, in absence of which we fall back to FLANN.
 
-2. `nan`s in the gradients are common, try with different batch sizes
+1. `nan`s in the gradients are common, try with different batch sizes
 
 Repos referred to for creation of this repo:
 
