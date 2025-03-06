@@ -179,7 +179,7 @@ def ptr(tensor: torch.Tensor) -> int:
     return tensor.data_ptr()
 
 
-def ensure_gpu(tensor: torch.Tensor | np.ndarray, device: torch.device) -> torch.Tensor:
+def ensure_gpu(tensor: torch.Tensor | np.ndarray, device: torch.device | None) -> torch.Tensor:
     """Ensures a tensor is on the specified GPU.
 
     Args:
@@ -189,10 +189,12 @@ def ensure_gpu(tensor: torch.Tensor | np.ndarray, device: torch.device) -> torch
     Returns:
         The tensor on the specified GPU.
     """
-    if isinstance(tensor, torch.Tensor):
+    if isinstance(tensor, torch.Tensor) and device is not None:
         return tensor.to(device)
-    elif isinstance(tensor, np.ndarray):
+    elif isinstance(tensor, np.ndarray) and device is not None:
         return torch.tensor(tensor, device=device)
+    elif isinstance(tensor, np.ndarray):
+        return torch.Tensor(tensor)
     else:
         return tensor
 

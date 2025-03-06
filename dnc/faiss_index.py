@@ -49,19 +49,18 @@ class FAISSIndex(object):
         self.res = res if res else faiss.StandardGpuResources()
         train_tensor = train if train is not None else torch.randn(self.nr_cells * 100, self.cell_size)
 
-        if self.device is None:
-            pass
-
-        elif self.device.type == "cuda":
+        # Configure FAISS resources for GPU if needed
+        if self.device is not None and self.device.type == "cuda":
             self.res.setTempMemoryFraction(0.01)
             self.res.initializeForDevice(
                 self.device.index if self.device.index is not None else 0
             )  # Handle potential None index
-
-        elif self.device.type == "cpu":
-            self.index = faiss.IndexIVFFlat(self.cell_size, self.num_lists, faiss.METRIC_L2)
-        else:
+            # Create GPU index
             self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.num_lists, faiss.METRIC_L2)
+        else:
+            # Create CPU index for both None device and explicit CPU device
+            self.index = faiss.IndexIVFFlat(self.cell_size, self.num_lists, faiss.METRIC_L2)
+
         self.index.setNumProbes(self.probes)
         self.train(train_tensor)
 
@@ -72,15 +71,24 @@ class FAISSIndex(object):
             train: Training data.
         """
         train = ensure_gpu(train, self.device)
-        torch.cuda.synchronize(self.device)
+
+        # Only synchronize if using CUDA
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
         self.index.train_c(self.nr_cells, cast_float(ptr(train)))
-        torch.cuda.synchronize(self.device)
+
+        # Only synchronize if using CUDA
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
 
     def reset(self) -> None:
         """Resets the index."""
-        torch.cuda.synchronize(self.device)
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
         self.index.reset()
-        torch.cuda.synchronize(self.device)
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
 
     def add(self, other: torch.Tensor, positions: torch.Tensor | None = None, last: int | None = None) -> None:
         """Adds vectors to the index.
@@ -92,7 +100,9 @@ class FAISSIndex(object):
         """
         other = ensure_gpu(other, self.device)
 
-        torch.cuda.synchronize(self.device)
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
         if positions is not None:
             positions = ensure_gpu(positions, self.device).long()
             assert positions.size(0) == other.size(0), "Mismatch in number of positions and vectors"
@@ -100,7 +110,9 @@ class FAISSIndex(object):
         else:
             other = other[:last, :] if last is not None else other
             self.index.add_c(other.size(0), cast_float(ptr(other)))
-        torch.cuda.synchronize(self.device)
+
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
 
     def search(self, query: torch.Tensor, k: int | None = None) -> tuple[torch.Tensor, torch.Tensor]:
         """Searches the index for nearest neighbors.
@@ -121,7 +133,12 @@ class FAISSIndex(object):
         distances = torch.empty(b, k, device=self.device, dtype=torch.float32)
         labels = torch.empty(b, k, device=self.device, dtype=torch.int64)
 
-        torch.cuda.synchronize(self.device)
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
         self.index.search_c(b, cast_float(ptr(query)), k, cast_float(ptr(distances)), cast_long(ptr(labels)))
-        torch.cuda.synchronize(self.device)
+
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
         return (distances, (labels - 1))
