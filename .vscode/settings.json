@@ -1,0 +1,10 @@
+{
+  "editor.tokenColorCustomizations": {
+    "comments": "",
+    "textMateRules": []
+  },
+  "python.formatting.provider": "black",
+  "python.linting.enabled": true,
+  "python.linting.flake8Enabled": false,
+  "python.linting.mypyEnabled": true
+}
