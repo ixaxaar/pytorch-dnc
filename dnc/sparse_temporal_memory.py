@@ -207,8 +207,11 @@ class SparseTemporalMemory(nn.Module):
         positions = hidden["read_positions"]
 
         (b, m, w) = hidden["memory"].size()
-        # update memory
-        hidden["memory"].scatter_(1, positions.unsqueeze(2).expand(b, self.c, w), visible_memory)
+        # Create a new tensor for memory to avoid inplace operations during backprop
+        new_memory = hidden["memory"].clone()
+        # update memory (using non-inplace operation)
+        new_memory.scatter_(1, positions.unsqueeze(2).expand(b, self.c, w), visible_memory)
+        hidden["memory"] = new_memory
 
         # non-differentiable operations
         pos = positions.detach().cpu().numpy()
@@ -252,7 +255,10 @@ class SparseTemporalMemory(nn.Module):
 
         # since only KL*2 entries are kept non-zero sparse, create the dense version from the sparse one
         precedence_dense = cuda(torch.zeros(b, m), device=self.device)
-        precedence_dense.scatter_(1, temporal_read_positions, precedence)
+        # Use non-inplace operation - create new tensor and assign
+        precedence_tmp = precedence_dense.clone()
+        precedence_tmp.scatter_(1, temporal_read_positions, precedence)
+        precedence_dense = precedence_tmp
         precedence_dense_i = precedence_dense.unsqueeze(2)
 
         temporal_write_weights_j = write_weights.gather(1, temporal_read_positions).unsqueeze(1)
@@ -308,8 +314,10 @@ class SparseTemporalMemory(nn.Module):
         y = (1 - interpolation_gate) * I
         write_weights = write_gate * (x + y)
 
-        # store the write weights
-        hidden["write_weights"].scatter_(1, hidden["read_positions"], write_weights)
+        # store the write weights (avoid inplace operations)
+        new_write_weights = hidden["write_weights"].clone()
+        new_write_weights.scatter_(1, hidden["read_positions"], write_weights)
+        hidden["write_weights"] = new_write_weights
 
         # erase matrix
         erase_matrix = I.unsqueeze(2).expand(hidden["visible_memory"].size())
@@ -370,7 +378,10 @@ class SparseTemporalMemory(nn.Module):
         # usage after write
         relevant_usages = (self.timestep - relevant_usages) * u + relevant_usages * (1 - u)
 
-        usage.scatter_(1, read_positions, relevant_usages)
+        # Replace inplace scatter with clone + scatter + assignment
+        new_usage = usage.clone()
+        new_usage.scatter_(1, read_positions, relevant_usages)
+        usage = new_usage
 
         return usage, I
 
@@ -480,7 +491,10 @@ class SparseTemporalMemory(nn.Module):
         )
 
         hidden["read_positions"] = positions
-        hidden["read_weights"] = hidden["read_weights"].scatter_(1, positions, read_weights)
+        # Avoid inplace operation
+        new_read_weights = hidden["read_weights"].clone()
+        new_read_weights.scatter_(1, positions, read_weights)
+        hidden["read_weights"] = new_read_weights
         hidden["read_vectors"] = read_vectors
         hidden["visible_memory"] = visible_memory
 

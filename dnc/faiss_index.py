@@ -3,7 +3,7 @@
 
 import faiss
 from faiss import cast_integer_to_float_ptr as cast_float
-from faiss import cast_integer_to_long_ptr as cast_long
+from faiss import cast_integer_to_idx_t_ptr as cast_long
 
 import torch
 
@@ -55,13 +55,17 @@ class FAISSIndex(object):
             self.res.initializeForDevice(
                 self.device.index if self.device.index is not None else 0
             )  # Handle potential None index
-            # Create GPU index
-            self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.num_lists, faiss.METRIC_L2)
+            # Create GPU index with a quantizer
+            quantizer = faiss.IndexFlatL2(self.cell_size)
+            self.index = faiss.GpuIndexIVFFlat(self.res, quantizer, self.cell_size, self.num_lists, faiss.METRIC_L2)
         else:
             # Create CPU index for both None device and explicit CPU device
-            self.index = faiss.IndexIVFFlat(self.cell_size, self.num_lists, faiss.METRIC_L2)
+            # First create a quantizer (the first argument IndexIVFFlat needs)
+            quantizer = faiss.IndexFlatL2(self.cell_size)
+            self.index = faiss.IndexIVFFlat(quantizer, self.cell_size, self.num_lists, faiss.METRIC_L2)
 
-        self.index.setNumProbes(self.probes)
+        # set number of probes - method name nprobes in newer FAISS versions
+        self.index.nprobes = self.probes
         self.train(train_tensor)
 
     def train(self, train: torch.Tensor) -> None:

@@ -58,12 +58,14 @@ def test_rnn_1():
     optimizer.zero_grad()
 
     input_data, target_output = generate_data(batch_size, length, input_size, cuda)
-    target_output = target_output.transpose(0, 1).contiguous()
 
     output, (chx, mhx, rv), v = rnn(input_data, None)
-    output = output.transpose(0, 1)
 
-    loss = criterion((output), target_output)
+    # Make output and target compatible for loss calculation
+    # target: [batch, seq, features] -> [seq, batch, features]
+    target_output = target_output.permute(1, 0, 2).contiguous()
+
+    loss = criterion(output, target_output)
     loss.backward()
 
     T.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
@@ -118,12 +120,14 @@ def test_rnn_n():
     optimizer.zero_grad()
 
     input_data, target_output = generate_data(batch_size, length, input_size, cuda)
-    target_output = target_output.transpose(0, 1).contiguous()
 
     output, (chx, mhx, rv), v = rnn(input_data, None)
-    output = output.transpose(0, 1)
 
-    loss = criterion((output), target_output)
+    # Make output and target compatible for loss calculation
+    # target: [batch, seq, features] -> [seq, batch, features]
+    target_output = target_output.permute(1, 0, 2).contiguous()
+
+    loss = criterion(output, target_output)
     loss.backward()
 
     T.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
@@ -176,23 +180,32 @@ def test_rnn_no_memory_pass():
     optimizer.zero_grad()
 
     input_data, target_output = generate_data(batch_size, length, input_size, cuda)
-    target_output = target_output.transpose(0, 1).contiguous()
 
-    (chx, mhx, rv) = (None, None, None)
+    # Make output and target compatible for loss calculation
+    # target: [batch, seq, features] -> [seq, batch, features]
+    target_output = target_output.permute(1, 0, 2).contiguous()
+
+    # Initialize hidden state explicitly
+    controller_hidden = None
+    memory_hidden = None
+    last_read = None
     outputs = []
+
     for x in range(6):
-        output, (chx, mhx, rv), v = rnn(input_data, (chx, mhx, rv), pass_through_memory=False)
-        output = output.transpose(0, 1)
+        output, (controller_hidden, memory_hidden, last_read), v = rnn(
+            input_data, (controller_hidden, memory_hidden, last_read), pass_through_memory=False
+        )
         outputs.append(output)
 
+    # Sum outputs for all iterations
     output = functools.reduce(lambda x, y: x + y, outputs)
-    loss = criterion((output), target_output)
+    loss = criterion(output, target_output)
     loss.backward()
 
     T.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
     optimizer.step()
 
     assert target_output.size() == T.Size([27, 10, 100])
-    assert chx[0][0].size() == T.Size([num_hidden_layers, 10, 100])
-    # assert mhx['memory'].size() == T.Size([10,12,17])
-    assert rv == None
+    assert controller_hidden[0][0].size() == T.Size([num_hidden_layers, 10, 100])
+    # assert memory_hidden[0]['memory'].size() == T.Size([10,12,17])
+    assert last_read is not None

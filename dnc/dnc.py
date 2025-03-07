@@ -7,6 +7,9 @@ import numpy as np
 from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence, pad_packed_sequence
 
 from .memory import Memory, MemoryHiddenState
+from .sparse_memory import SparseMemory
+from .sparse_temporal_memory import SparseTemporalMemory
+
 from .util import cuda
 
 # ControllerHiddenState =
@@ -92,7 +95,7 @@ class DNC(nn.Module):
         self.nn_output_size = self.output_size + self.read_vectors_size
 
         self.rnns: list[nn.RNN | nn.GRU | nn.LSTM] = []
-        self.memories: list[Memory] = []
+        self.memories: list[Memory | SparseMemory | SparseTemporalMemory] = []
 
         for layer in range(self.num_layers):
             if self.rnn_type.lower() == "rnn":
@@ -177,38 +180,50 @@ class DNC(nn.Module):
         Returns:
             Initialized hidden state.
         """
-        # create empty hidden states if not provided
-        if hx:
-            (chx, mhx, last_read) = hx
-            init_hidden = False
+        # Parse hidden state components
+        if hx is not None:
+            chx, mhx, last_read = hx
         else:
-            init_hidden = True
+            chx, mhx, last_read = None, None, None
 
-        # initialize hidden state of the controller RNN
-        if init_hidden:
+        # Initialize controller hidden state if needed
+        if chx is None:
             h: torch.Tensor = cuda(
                 torch.zeros(self.num_hidden_layers, batch_size, self.output_size),
                 device=self.device,
             )
             torch.nn.init.xavier_uniform_(h)
+            chx = [(h, h) if self.rnn_type.lower() == "lstm" else h for _ in range(self.num_layers)]
 
-            chx = [(h, h) if self.rnn_type.lower() == "lstm" else h for _ in range(self.num_layers)]  # Use _
-
-        # Last read vectors
-        if init_hidden:
+        # Initialize last read vectors if needed
+        if last_read is None:
             last_read = cuda(torch.zeros(batch_size, self.w * self.r), device=self.device)
 
-        # memory states
-        if init_hidden:
+        # Initialize memory states if needed
+        if mhx is None:
             if self.share_memory_between_layers:
                 mhx = [self.memories[0].reset(batch_size, erase=reset_experience)]
             else:
                 mhx = [m.reset(batch_size, erase=reset_experience) for m in self.memories]
         else:
             if self.share_memory_between_layers:
-                mhx = [self.memories[0].reset(batch_size, mhx[0], erase=reset_experience)]
+                # Handle case where mhx elements might be None
+                if len(mhx) == 0 or mhx[0] is None:
+                    mhx = [self.memories[0].reset(batch_size, erase=reset_experience)]
+                else:
+                    mhx = [self.memories[0].reset(batch_size, mhx[0], erase=reset_experience)]
             else:
-                mhx = [m.reset(batch_size, h, erase=reset_experience) for m, h in zip(self.memories, mhx)]
+                if len(mhx) == 0:
+                    mhx = [m.reset(batch_size, erase=reset_experience) for m in self.memories]
+                else:
+                    # Handle potential None elements in mhx
+                    new_mhx = []
+                    for i, m in enumerate(self.memories):
+                        if i < len(mhx) and mhx[i] is not None:
+                            new_mhx.append(m.reset(batch_size, mhx[i], erase=reset_experience))
+                        else:
+                            new_mhx.append(m.reset(batch_size, erase=reset_experience))
+                    mhx = new_mhx
 
         return chx, mhx, last_read
 
@@ -285,7 +300,7 @@ class DNC(nn.Module):
             # the read vectors
             read_vectors = read_vecs.view(-1, self.w * self.r)
         else:
-            read_vectors = None
+            read_vectors = cuda(torch.zeros(ξ.size(0), self.w * self.r), device=self.device)
 
         return output, (chx, mhx, read_vectors)
 
@@ -308,10 +323,11 @@ class DNC(nn.Module):
             Tuple: Output, updated hidden state, and optionally debug information.
 
         """
+        max_length: int
         # handle packed data
         if isinstance(input_data, PackedSequence):
             input, lengths = pad_packed_sequence(input_data, batch_first=self.batch_first)
-            max_length = lengths.max().item()  # Use .item() to get a Python int
+            max_length = int(lengths.max().item())
         elif isinstance(input_data, torch.Tensor):
             input = input_data
             batch_size = input.size(0) if self.batch_first else input.size(1)
@@ -328,6 +344,10 @@ class DNC(nn.Module):
         controller_hidden, mem_hidden, last_read = self._init_hidden(hx, batch_size, reset_experience)
 
         # concat input with last read (or padding) vectors
+        # Handle the case where last_read is None
+        if last_read is None:
+            last_read = cuda(torch.zeros(batch_size, self.w * self.r), device=self.device)
+
         inputs = [torch.cat([input[:, x, :], last_read], 1) for x in range(max_length)]
 
         # batched forward pass per element / word / etc

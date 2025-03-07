@@ -194,8 +194,11 @@ class SparseMemory(nn.Module):
         positions = hidden["read_positions"]
 
         (b, m, w) = hidden["memory"].size()
-        # update memory
-        hidden["memory"].scatter_(1, positions.unsqueeze(2).expand(b, self.c, w), visible_memory)
+        # Create a new tensor for memory to avoid inplace operations during backprop
+        new_memory = hidden["memory"].clone()
+        # update memory (using non-inplace operation)
+        new_memory.scatter_(1, positions.unsqueeze(2).expand(b, self.c, w), visible_memory)
+        hidden["memory"] = new_memory
 
         # non-differentiable operations
         pos = positions.detach().cpu().numpy()
@@ -241,8 +244,10 @@ class SparseMemory(nn.Module):
         y = (1 - interpolation_gate) * I
         write_weights = write_gate * (x + y)
 
-        # store the write weights
-        hidden["write_weights"].scatter_(1, hidden["read_positions"], write_weights)
+        # store the write weights (avoid inplace operation)
+        new_write_weights = hidden["write_weights"].clone()
+        new_write_weights.scatter_(1, hidden["read_positions"], write_weights)
+        hidden["write_weights"] = new_write_weights
 
         # erase matrix
         erase_matrix = I.unsqueeze(2).expand(hidden["visible_memory"].size())
@@ -288,7 +293,10 @@ class SparseMemory(nn.Module):
         # usage after write
         relevant_usages = (self.timestep - relevant_usages) * u + relevant_usages * (1 - u)
 
-        usage.scatter_(1, read_positions, relevant_usages)
+        # Replace inplace scatter with clone + scatter + assignment
+        new_usage = usage.clone()
+        new_usage.scatter_(1, read_positions, relevant_usages)
+        usage = new_usage
 
         return usage, I
 
@@ -356,7 +364,10 @@ class SparseMemory(nn.Module):
         )
 
         hidden["read_positions"] = positions
-        hidden["read_weights"] = hidden["read_weights"].scatter_(1, positions, read_weights)
+        # Avoid inplace operation
+        new_read_weights = hidden["read_weights"].clone()
+        new_read_weights.scatter_(1, positions, read_weights)
+        hidden["read_weights"] = new_read_weights
         hidden["read_vectors"] = read_vectors
         hidden["visible_memory"] = visible_memory
 
