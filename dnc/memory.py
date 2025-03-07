@@ -192,8 +192,10 @@ class Memory(nn.Module):
             torch.Tensor: Updated usage vector (BATCH_SIZE x NR_CELLS)
         """
         usage = usage + (1 - usage) * (1 - torch.prod(1 - write_weights, 1))
-        ψ = torch.prod(1 - free_gates.unsqueeze(2) * read_weights, 1)
-        return usage * ψ
+        # Free gates determine which read locations can be freed
+        # Higher free gate = more likely to free the location
+        retention_vector = torch.prod(1 - free_gates.unsqueeze(2) * read_weights, 1)
+        return usage * retention_vector
 
     def allocate(self, usage: torch.Tensor, write_gate: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Get the allocation weightings for finding new locations to write.

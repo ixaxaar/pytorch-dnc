@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import *
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -12,13 +12,14 @@ from .sparse_temporal_memory import SparseTemporalMemory
 
 from .util import cuda
 
-# ControllerHiddenState =
+# Define controller hidden state type for clarity
+ControllerHiddenState = torch.Tensor | tuple[torch.Tensor, torch.Tensor]
 DNCHiddenState = tuple[
-    list[torch.Tensor | tuple[torch.Tensor, torch.Tensor]],
+    list[ControllerHiddenState],
     list[MemoryHiddenState],
     torch.Tensor,
 ]
-LayerHiddenState = tuple[torch.Tensor | tuple[torch.Tensor, torch.Tensor], MemoryHiddenState, torch.Tensor | None]
+LayerHiddenState = tuple[ControllerHiddenState, MemoryHiddenState, torch.Tensor | None]
 
 
 class DNC(nn.Module):
@@ -225,12 +226,14 @@ class DNC(nn.Module):
 
         return chx, mhx, last_read
 
-    def _debug(self, mhx: MemoryHiddenState, debug_obj: dict[str, Any] | None) -> dict[str, Any] | None:
+    def _debug(
+        self, mhx: MemoryHiddenState, debug_obj: dict[str, list[np.ndarray]] | None
+    ) -> dict[str, list[np.ndarray]] | None:
         """Collects debug information.  Only returns a debug_obj if self.debug is True.
 
         Args:
             mhx: Memory hidden state.
-            debug_obj: Debug object.
+            debug_obj: Debug object containing lists of numpy arrays.
 
         Returns:
              Debug object or None.
@@ -292,12 +295,13 @@ class DNC(nn.Module):
         # pass through memory
         if pass_through_memory:
             if self.share_memory_between_layers:
-                read_vecs, mhx = self.memories[0](ξ, mhx)  # type: ignore
+                read_vecs, mhx = self.memories[0](ξ, mhx)
             else:
                 read_vecs, mhx = self.memories[layer](ξ, mhx)
             # the read vectors
             read_vectors = read_vecs.view(-1, self.w * self.r)
         else:
+            # Initialize read vectors with zeros when not passing through memory
             read_vectors = cuda(torch.zeros(ξ.size(0), self.w * self.r), device=self.device)
 
         return output, (chx, mhx, read_vectors)
@@ -308,7 +312,10 @@ class DNC(nn.Module):
         hx: DNCHiddenState | None,
         reset_experience: bool = False,
         pass_through_memory: bool = True,
-    ) -> tuple[torch.Tensor, DNCHiddenState] | tuple[torch.Tensor, DNCHiddenState, Any]:
+    ) -> (
+        tuple[torch.Tensor | PackedSequence, DNCHiddenState]
+        | tuple[torch.Tensor | PackedSequence, DNCHiddenState, dict[str, Any]]
+    ):
         """Performs a forward pass through the DNC.
 
         Args:
@@ -318,7 +325,7 @@ class DNC(nn.Module):
             pass_through_memory: Whether to pass the input through memory.
 
         Returns:
-            Tuple: Output, updated hidden state, and optionally debug information.
+            Tuple: Output (same type as input_data), updated hidden state, and optionally debug information.
 
         """
         max_length: int
@@ -341,9 +348,7 @@ class DNC(nn.Module):
 
         controller_hidden, mem_hidden, last_read = self._init_hidden(hx, batch_size, reset_experience)
 
-        # concat input with last read (or padding) vectors
-        if last_read is None:
-            last_read = cuda(torch.zeros(batch_size, self.w * self.r), device=self.device)
+        # last_read is guaranteed to be initialized by _init_hidden, so no need to check for None
 
         inputs = [torch.cat([input[:, x, :], last_read], 1) for x in range(max_length)]
 

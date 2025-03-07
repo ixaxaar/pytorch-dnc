@@ -331,8 +331,9 @@ class SparseMemory(nn.Module):
         # no gradient here
         # temporal reads
         (b, m, w) = memory.size()
-        # get the top KL entries
-        max_length = int(least_used_mem[0, 0].detach().cpu().numpy()) if not self.mem_limit_reached else (m - 1)
+        # Use the memory size as the max length rather than relying on least_used_mem value
+        # If memory limit is reached, use full memory size minus 1
+        max_length = (m - 1) if self.mem_limit_reached else min(int(least_used_mem[0, 0].detach().cpu().numpy()), m - 1)
 
         # differentiable ops
         # append forward and backward read positions, might lead to duplicates
