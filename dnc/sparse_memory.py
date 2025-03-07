@@ -108,7 +108,7 @@ class SparseMemory(nn.Module):
                         device=self.device,
                     )
                     for _ in range(b)
-                ]  # Use _ for unused loop var
+                ]
             except ImportError:
                 print(
                     "FAISS not found, please install FAISS, consult https://github.com/facebookresearch/faiss/blob/main/INSTALL.md"
@@ -325,7 +325,6 @@ class SparseMemory(nn.Module):
         read_positions = torch.stack(rpos, 0)
 
         # add least used mem to read positions
-
         (b, r, k) = read_positions.size()
         read_positions = read_positions.squeeze(1).view(b, -1)
 

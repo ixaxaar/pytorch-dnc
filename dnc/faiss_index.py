@@ -52,19 +52,17 @@ class FAISSIndex(object):
         # Configure FAISS resources for GPU if needed
         if self.device is not None and self.device.type == "cuda":
             self.res.setTempMemoryFraction(0.01)
-            self.res.initializeForDevice(
-                self.device.index if self.device.index is not None else 0
-            )  # Handle potential None index
+            self.res.initializeForDevice(self.device.index if self.device.index is not None else 0)
             # Create GPU index with a quantizer
             quantizer = faiss.IndexFlatL2(self.cell_size)
             self.index = faiss.GpuIndexIVFFlat(self.res, quantizer, self.cell_size, self.num_lists, faiss.METRIC_L2)
         else:
             # Create CPU index for both None device and explicit CPU device
-            # First create a quantizer (the first argument IndexIVFFlat needs)
+            # First create a quantizer
             quantizer = faiss.IndexFlatL2(self.cell_size)
             self.index = faiss.IndexIVFFlat(quantizer, self.cell_size, self.num_lists, faiss.METRIC_L2)
 
-        # set number of probes - method name nprobes in newer FAISS versions
+        # set number of probes
         self.index.nprobes = self.probes
         self.train(train_tensor)
 

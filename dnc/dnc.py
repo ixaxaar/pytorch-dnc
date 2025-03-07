@@ -207,7 +207,6 @@ class DNC(nn.Module):
                 mhx = [m.reset(batch_size, erase=reset_experience) for m in self.memories]
         else:
             if self.share_memory_between_layers:
-                # Handle case where mhx elements might be None
                 if len(mhx) == 0 or mhx[0] is None:
                     mhx = [self.memories[0].reset(batch_size, erase=reset_experience)]
                 else:
@@ -216,7 +215,6 @@ class DNC(nn.Module):
                 if len(mhx) == 0:
                     mhx = [m.reset(batch_size, erase=reset_experience) for m in self.memories]
                 else:
-                    # Handle potential None elements in mhx
                     new_mhx = []
                     for i, m in enumerate(self.memories):
                         if i < len(mhx) and mhx[i] is not None:
@@ -344,7 +342,6 @@ class DNC(nn.Module):
         controller_hidden, mem_hidden, last_read = self._init_hidden(hx, batch_size, reset_experience)
 
         # concat input with last read (or padding) vectors
-        # Handle the case where last_read is None
         if last_read is None:
             last_read = cuda(torch.zeros(batch_size, self.w * self.r), device=self.device)
 
@@ -364,8 +361,8 @@ class DNC(nn.Module):
                 # this layer's hidden states
                 chx_layer = controller_hidden[layer]
                 mem_layer = mem_hidden[0] if self.share_memory_between_layers else mem_hidden[layer]
-                # pass through controller
 
+                # pass through controller
                 outs[time], (
                     chx_layer_output,
                     mem_layer_output,
