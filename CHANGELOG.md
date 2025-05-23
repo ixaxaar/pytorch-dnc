@@ -1,3 +1,21 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+## Table of Contents
+
+- [Change Log](#change-log)
+  - [Unreleased](#unreleased)
+  - [1.0.1 (2019-04-05)](#101-2019-04-05)
+  - [1.0.0 (2019-04-05)](#100-2019-04-05)
+  - [0.0.9 (2018-04-23)](#009-2018-04-23)
+  - [0.0.7 (2017-12-20)](#007-2017-12-20)
+  - [0.0.6 (2017-11-12)](#006-2017-11-12)
+  - [0.5.0 (2017-11-01)](#050-2017-11-01)
+  - [0.0.3 (2017-10-27)](#003-2017-10-27)
+  - [0.0.2 (2017-10-26)](#002-2017-10-26)
+  - [v0.0.1 (2017-10-26)](#v001-2017-10-26)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Change Log
 
 ## [Unreleased](https://github.com/ixaxaar/pytorch-dnc/tree/HEAD)

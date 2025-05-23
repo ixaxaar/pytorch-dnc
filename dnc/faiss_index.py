@@ -2,85 +2,145 @@
 # -*- coding: utf-8 -*-
 
 import faiss
-
 from faiss import cast_integer_to_float_ptr as cast_float
-from faiss import cast_integer_to_int_ptr as cast_int
-from faiss import cast_integer_to_long_ptr as cast_long
+from faiss import cast_integer_to_idx_t_ptr as cast_long
 
-from .util import *
+import torch
+
+from .util import ptr, ensure_gpu
 
 
 class FAISSIndex(object):
+    """FAISS Index for approximate nearest neighbor search."""
 
-  def __init__(self, cell_size=20, nr_cells=1024, K=4, num_lists=32, probes=32, res=None, train=None, gpu_id=-1):
-    super(FAISSIndex, self).__init__()
-    self.cell_size = cell_size
-    self.nr_cells = nr_cells
-    self.probes = probes
-    self.K = K
-    self.num_lists = num_lists
-    self.gpu_id = gpu_id
+    def __init__(
+        self,
+        cell_size: int = 20,
+        nr_cells: int = 1024,
+        K: int = 4,
+        num_lists: int = 32,
+        probes: int = 32,
+        res: faiss.GpuResources | None = None,
+        train: torch.Tensor | None = None,
+        device: torch.device | None = None,
+    ):
+        """Initialize FAISSIndex.
 
-    # BEWARE: if this variable gets deallocated, FAISS crashes
-    self.res = res if res else faiss.StandardGpuResources()
-    self.res.setTempMemoryFraction(0.01)
-    if self.gpu_id != -1:
-      self.res.initializeForDevice(self.gpu_id)
+        Args:
+            cell_size: Size of each memory cell.
+            nr_cells: Number of memory cells.
+            K: Number of nearest neighbors to retrieve.
+            num_lists: Number of lists for the index.
+            probes: Number of probes for searching.
+            res: FAISS GpuResources object.
+            train: Training data.
+            device: PyTorch device
 
-    nr_samples = self.nr_cells * 100 * self.cell_size
-    train = train if train is not None else T.randn(self.nr_cells * 100, self.cell_size)
+        """
+        super(FAISSIndex, self).__init__()
+        self.cell_size = cell_size
+        self.nr_cells = nr_cells
+        self.probes = probes
+        self.K = K
+        self.num_lists = num_lists
+        self.device = device
 
-    self.index = faiss.GpuIndexIVFFlat(self.res, self.cell_size, self.num_lists, faiss.METRIC_L2)
-    self.index.setNumProbes(self.probes)
-    self.train(train)
+        # BEWARE: if this variable gets deallocated, FAISS crashes
+        self.res = res if res else faiss.StandardGpuResources()
+        train_tensor = train if train is not None else torch.randn(self.nr_cells * 100, self.cell_size)
 
-  def cuda(self, gpu_id):
-    self.gpu_id = gpu_id
+        # Configure FAISS resources for GPU if needed
+        if self.device is not None and self.device.type == "cuda":
+            self.res.setTempMemoryFraction(0.01)
+            self.res.initializeForDevice(self.device.index if self.device.index is not None else 0)
+            # Create GPU index with a quantizer
+            quantizer = faiss.IndexFlatL2(self.cell_size)
+            self.index = faiss.GpuIndexIVFFlat(self.res, quantizer, self.cell_size, self.num_lists, faiss.METRIC_L2)
+        else:
+            # Create CPU index for both None device and explicit CPU device
+            # First create a quantizer
+            quantizer = faiss.IndexFlatL2(self.cell_size)
+            self.index = faiss.IndexIVFFlat(quantizer, self.cell_size, self.num_lists, faiss.METRIC_L2)
 
-  def train(self, train):
-    train = ensure_gpu(train, -1)
-    T.cuda.synchronize()
-    self.index.train_c(self.nr_cells, cast_float(ptr(train)))
-    T.cuda.synchronize()
+        # set number of probes
+        self.index.nprobes = self.probes
+        self.train(train_tensor)
 
-  def reset(self):
-    T.cuda.synchronize()
-    self.index.reset()
-    T.cuda.synchronize()
+    def train(self, train: torch.Tensor) -> None:
+        """Trains the index.
 
-  def add(self, other, positions=None, last=None):
-    other = ensure_gpu(other, self.gpu_id)
+        Args:
+            train: Training data.
+        """
+        train = ensure_gpu(train, self.device)
 
-    T.cuda.synchronize()
-    if positions is not None:
-      positions = ensure_gpu(positions, self.gpu_id)
-      assert positions.size(0) == other.size(0), "Mismatch in number of positions and vectors"
-      self.index.add_with_ids_c(other.size(0), cast_float(ptr(other)), cast_long(ptr(positions + 1)))
-    else:
-      other = other[:last, :] if last is not None else other
-      self.index.add_c(other.size(0), cast_float(ptr(other)))
-    T.cuda.synchronize()
+        # Only synchronize if using CUDA
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
 
-  def search(self, query, k=None):
-    query = ensure_gpu(query, self.gpu_id)
+        self.index.train_c(self.nr_cells, cast_float(ptr(train)))
 
-    k = k if k else self.K
-    (b,n) = query.size()
+        # Only synchronize if using CUDA
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
 
-    distances = T.FloatTensor(b, k)
-    labels = T.LongTensor(b, k)
+    def reset(self) -> None:
+        """Resets the index."""
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+        self.index.reset()
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
 
-    if self.gpu_id != -1: distances = distances.cuda(self.gpu_id)
-    if self.gpu_id != -1: labels = labels.cuda(self.gpu_id)
+    def add(self, other: torch.Tensor, positions: torch.Tensor | None = None, last: int | None = None) -> None:
+        """Adds vectors to the index.
 
-    T.cuda.synchronize()
-    self.index.search_c(
-      b,
-      cast_float(ptr(query)),
-      k,
-      cast_float(ptr(distances)),
-      cast_long(ptr(labels))
-    )
-    T.cuda.synchronize()
-    return (distances, (labels-1))
+        Args:
+            other: Vectors to add.
+            positions: Positions of the vectors.
+            last: Index of the last vector to add.
+        """
+        other = ensure_gpu(other, self.device)
 
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
+        if positions is not None:
+            positions = ensure_gpu(positions, self.device).long()
+            assert positions.size(0) == other.size(0), "Mismatch in number of positions and vectors"
+            self.index.add_with_ids_c(other.size(0), cast_float(ptr(other)), cast_long(ptr(positions + 1)))
+        else:
+            other = other[:last, :] if last is not None else other
+            self.index.add_c(other.size(0), cast_float(ptr(other)))
+
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
+    def search(self, query: torch.Tensor, k: int | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+        """Searches the index for nearest neighbors.
+
+        Args:
+            query: Query vectors.
+            k: Number of nearest neighbors to retrieve.
+
+        Returns:
+            Tuple: Distances and labels of the nearest neighbors.
+        """
+
+        query = ensure_gpu(query, self.device)
+
+        k = k if k else self.K
+        (b, _) = query.size()
+
+        distances = torch.empty(b, k, device=self.device, dtype=torch.float32)
+        labels = torch.empty(b, k, device=self.device, dtype=torch.int64)
+
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
+        self.index.search_c(b, cast_float(ptr(query)), k, cast_float(ptr(distances)), cast_long(ptr(labels)))
+
+        if self.device is not None and self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+
+        return (distances, (labels - 1))

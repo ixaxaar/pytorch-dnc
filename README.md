@@ -1,6 +1,7 @@
 # Differentiable Neural Computers and family, for Pytorch
 
 Includes:
+
 1. Differentiable Neural Computers (DNC)
 2. Sparse Access Memory (SAM)
 3. Sparse Differentiable Neural Computers (SDNC)
@@ -8,26 +9,31 @@ Includes:
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+## Table of Contents
 
-- [Install](#install)
-  - [From source](#from-source)
-- [Architecure](#architecure)
-- [Usage](#usage)
-  - [DNC](#dnc)
-    - [Example usage](#example-usage)
-    - [Debugging](#debugging)
-  - [SDNC](#sdnc)
-    - [Example usage](#example-usage-1)
-    - [Debugging](#debugging-1)
-  - [SAM](#sam)
-    - [Example usage](#example-usage-2)
-    - [Debugging](#debugging-2)
-- [Tasks](#tasks)
-  - [Copy task (with curriculum and generalization)](#copy-task-with-curriculum-and-generalization)
-  - [Generalizing Addition task](#generalizing-addition-task)
-  - [Generalizing Argmax task](#generalizing-argmax-task)
-- [Code Structure](#code-structure)
-- [General noteworthy stuff](#general-noteworthy-stuff)
+- [Differentiable Neural Computers and family, for Pytorch](#differentiable-neural-computers-and-family-for-pytorch)
+  - [Table of Contents](#table-of-contents)
+  - [Install](#install)
+    - [From source](#from-source)
+  - [Architecure](#architecure)
+  - [Usage](#usage)
+    - [DNC](#dnc)
+      - [Example usage](#example-usage)
+      - [Debugging](#debugging)
+    - [SDNC](#sdnc)
+      - [Example usage](#example-usage-1)
+      - [Debugging](#debugging-1)
+    - [SAM](#sam)
+      - [Example usage](#example-usage-2)
+      - [Debugging](#debugging-2)
+  - [Tasks](#tasks)
+    - [Copy task (with curriculum and generalization)](#copy-task-with-curriculum-and-generalization)
+    - [Generalizing Addition task](#generalizing-addition-task)
+    - [Generalizing Argmax task](#generalizing-argmax-task)
+  - [Code Structure](#code-structure)
+  - [General noteworthy stuff](#general-noteworthy-stuff)
+    - [FAISS Installation Options](#faiss-installation-options)
+    - [Troubleshooting](#troubleshooting)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -73,34 +79,33 @@ Following are the constructor parameters:
 
 Following are the constructor parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input_size | `None` | Size of the input vectors |
-| hidden_size | `None` | Size of hidden units |
-| rnn_type | `'lstm'` | Type of recurrent cells used in the controller |
-| num_layers | `1` | Number of layers of recurrent units in the controller |
-| num_hidden_layers | `2` | Number of hidden layers per layer of the controller |
-| bias | `True` | Bias |
-| batch_first | `True` | Whether data is fed batch first |
-| dropout | `0` | Dropout between layers in the controller |
-| bidirectional | `False` | If the controller is bidirectional (Not yet implemented |
-| nr_cells | `5` | Number of memory cells |
-| read_heads | `2` | Number of read heads |
-| cell_size | `10` | Size of each memory cell |
-| nonlinearity | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
-| gpu_id | `-1` | ID of the GPU, -1 for CPU |
-| independent_linears | `False` | Whether to use independent linear units to derive interface vector |
-| share_memory | `True` | Whether to share memory between controller layers |
+| Argument            | Default  | Description                                                                     |
+|---------------------|----------|---------------------------------------------------------------------------------|
+| input_size          | `None`   | Size of the input vectors                                                       |
+| hidden_size         | `None`   | Size of hidden units                                                            |
+| rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                                  |
+| num_layers          | `1`      | Number of layers of recurrent units in the controller                           |
+| num_hidden_layers   | `2`      | Number of hidden layers per layer of the controller                             |
+| bias                | `True`   | Bias                                                                            |
+| batch_first         | `True`   | Whether data is fed batch first                                                 |
+| dropout             | `0`      | Dropout between layers in the controller                                        |
+| bidirectional       | `False`  | If the controller is bidirectional (Not yet implemented                         |
+| nr_cells            | `5`      | Number of memory cells                                                          |
+| read_heads          | `2`      | Number of read heads                                                            |
+| cell_size           | `10`     | Size of each memory cell                                                        |
+| nonlinearity        | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs                         |
+| device              | `None`   | PyTorch device object (e.g., `torch.device('cuda:0')` or `torch.device('cpu')`) |
+| independent_linears | `False`  | Whether to use independent linear units to derive interface vector              |
+| share_memory        | `True`   | Whether to share memory between controller layers                               |
 
 Following are the forward pass parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input | - | The input vector `(B*T*X)` or `(T*B*X)` |
-| hidden | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
-| reset_experience | `False` | Whether to reset memory |
-| pass_through_memory | `True` | Whether to pass through memory |
-
+| Argument            | Default            | Description                                                      |
+|---------------------|--------------------|------------------------------------------------------------------|
+| input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
+| hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
+| reset_experience    | `False`            | Whether to reset memory                                          |
+| pass_through_memory | `True`             | Whether to pass through memory                                   |
 
 #### Example usage
 
@@ -116,7 +121,7 @@ rnn = DNC(
   cell_size=32,
   read_heads=4,
   batch_first=True,
-  gpu_id=0
+  device=torch.device('cuda:0')
 )
 
 (controller_hidden, memory, read_vectors) = (None, None, None)
@@ -124,7 +129,6 @@ rnn = DNC(
 output, (controller_hidden, memory, read_vectors) = \
   rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
-
 
 #### Debugging
 
@@ -143,7 +147,7 @@ rnn = DNC(
   cell_size=32,
   read_heads=4,
   batch_first=True,
-  gpu_id=0,
+  device=torch.device('cuda:0'),
   debug=True
 )
 
@@ -155,15 +159,14 @@ output, (controller_hidden, memory, read_vectors), debug_memory = \
 
 Memory vectors returned by forward pass (`np.ndarray`):
 
-| Key | Y axis (dimensions) | X axis (dimensions) |
-| --- | --- | --- |
-| `debug_memory['memory']` | layer * time | nr_cells * cell_size
-| `debug_memory['link_matrix']` | layer * time | nr_cells * nr_cells
-| `debug_memory['precedence']` | layer * time | nr_cells
-| `debug_memory['read_weights']` | layer * time | read_heads * nr_cells
-| `debug_memory['write_weights']` | layer * time | nr_cells
-| `debug_memory['usage_vector']` | layer * time | nr_cells
-
+| Key                             | Y axis (dimensions) | X axis (dimensions)    |
+|---------------------------------|---------------------|------------------------|
+| `debug_memory['memory']`        | layer \* time       | nr_cells \* cell_size  |
+| `debug_memory['link_matrix']`   | layer \* time       | nr_cells \* nr_cells   |
+| `debug_memory['precedence']`    | layer \* time       | nr_cells               |
+| `debug_memory['read_weights']`  | layer \* time       | read_heads \* nr_cells |
+| `debug_memory['write_weights']` | layer \* time       | nr_cells               |
+| `debug_memory['usage_vector']`  | layer \* time       | nr_cells               |
 
 ### SDNC
 
@@ -171,36 +174,35 @@ Memory vectors returned by forward pass (`np.ndarray`):
 
 Following are the constructor parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input_size | `None` | Size of the input vectors |
-| hidden_size | `None` | Size of hidden units |
-| rnn_type | `'lstm'` | Type of recurrent cells used in the controller |
-| num_layers | `1` | Number of layers of recurrent units in the controller |
-| num_hidden_layers | `2` | Number of hidden layers per layer of the controller |
-| bias | `True` | Bias |
-| batch_first | `True` | Whether data is fed batch first |
-| dropout | `0` | Dropout between layers in the controller |
-| bidirectional | `False` | If the controller is bidirectional (Not yet implemented |
-| nr_cells | `5000` | Number of memory cells |
-| read_heads | `4` | Number of read heads |
-| sparse_reads | `4` | Number of sparse memory reads per read head |
-| temporal_reads | `4` | Number of temporal reads |
-| cell_size | `10` | Size of each memory cell |
-| nonlinearity | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
-| gpu_id | `-1` | ID of the GPU, -1 for CPU |
-| independent_linears | `False` | Whether to use independent linear units to derive interface vector |
-| share_memory | `True` | Whether to share memory between controller layers |
+| Argument            | Default  | Description                                                                     |
+|---------------------|----------|---------------------------------------------------------------------------------|
+| input_size          | `None`   | Size of the input vectors                                                       |
+| hidden_size         | `None`   | Size of hidden units                                                            |
+| rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                                  |
+| num_layers          | `1`      | Number of layers of recurrent units in the controller                           |
+| num_hidden_layers   | `2`      | Number of hidden layers per layer of the controller                             |
+| bias                | `True`   | Bias                                                                            |
+| batch_first         | `True`   | Whether data is fed batch first                                                 |
+| dropout             | `0`      | Dropout between layers in the controller                                        |
+| bidirectional       | `False`  | If the controller is bidirectional (Not yet implemented                         |
+| nr_cells            | `5000`   | Number of memory cells                                                          |
+| read_heads          | `4`      | Number of read heads                                                            |
+| sparse_reads        | `4`      | Number of sparse memory reads per read head                                     |
+| temporal_reads      | `4`      | Number of temporal reads                                                        |
+| cell_size           | `10`     | Size of each memory cell                                                        |
+| nonlinearity        | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs                         |
+| device              | `None`   | PyTorch device object (e.g., `torch.device('cuda:0')` or `torch.device('cpu')`) |
+| independent_linears | `False`  | Whether to use independent linear units to derive interface vector              |
+| share_memory        | `True`   | Whether to share memory between controller layers                               |
 
 Following are the forward pass parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input | - | The input vector `(B*T*X)` or `(T*B*X)` |
-| hidden | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
-| reset_experience | `False` | Whether to reset memory |
-| pass_through_memory | `True` | Whether to pass through memory |
-
+| Argument            | Default            | Description                                                      |
+|---------------------|--------------------|------------------------------------------------------------------|
+| input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
+| hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
+| reset_experience    | `False`            | Whether to reset memory                                          |
+| pass_through_memory | `True`             | Whether to pass through memory                                   |
 
 #### Example usage
 
@@ -217,7 +219,7 @@ rnn = SDNC(
   read_heads=4,
   sparse_reads=4,
   batch_first=True,
-  gpu_id=0
+  device=torch.device('cuda:0')
 )
 
 (controller_hidden, memory, read_vectors) = (None, None, None)
@@ -225,7 +227,6 @@ rnn = SDNC(
 output, (controller_hidden, memory, read_vectors) = \
   rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
-
 
 #### Debugging
 
@@ -246,7 +247,7 @@ rnn = SDNC(
   batch_first=True,
   sparse_reads=4,
   temporal_reads=4,
-  gpu_id=0,
+  device=torch.device('cuda:0'),
   debug=True
 )
 
@@ -258,17 +259,17 @@ output, (controller_hidden, memory, read_vectors), debug_memory = \
 
 Memory vectors returned by forward pass (`np.ndarray`):
 
-| Key | Y axis (dimensions) | X axis (dimensions) |
-| --- | --- | --- |
-| `debug_memory['memory']` | layer * time | nr_cells * cell_size
-| `debug_memory['visible_memory']` | layer * time | sparse_reads+2*temporal_reads+1 * nr_cells
-| `debug_memory['read_positions']` | layer * time | sparse_reads+2*temporal_reads+1
-| `debug_memory['link_matrix']` | layer * time | sparse_reads+2*temporal_reads+1 * sparse_reads+2*temporal_reads+1
-| `debug_memory['rev_link_matrix']` | layer * time | sparse_reads+2*temporal_reads+1 * sparse_reads+2*temporal_reads+1
-| `debug_memory['precedence']` | layer * time | nr_cells
-| `debug_memory['read_weights']` | layer * time | read_heads * nr_cells
-| `debug_memory['write_weights']` | layer * time | nr_cells
-| `debug_memory['usage']` | layer * time | nr_cells
+| Key                               | Y axis (dimensions) | X axis (dimensions)                                                |
+|-----------------------------------|---------------------|--------------------------------------------------------------------|
+| `debug_memory['memory']`          | layer \* time       | nr_cells \* cell_size                                              |
+| `debug_memory['visible_memory']`  | layer \* time       | sparse_reads+2*temporal_reads+1 * nr_cells                         |
+| `debug_memory['read_positions']`  | layer \* time       | sparse_reads+2\*temporal_reads+1                                   |
+| `debug_memory['link_matrix']`     | layer \* time       | sparse_reads+2*temporal_reads+1 * sparse_reads+2\*temporal_reads+1 |
+| `debug_memory['rev_link_matrix']` | layer \* time       | sparse_reads+2*temporal_reads+1 * sparse_reads+2\*temporal_reads+1 |
+| `debug_memory['precedence']`      | layer \* time       | nr_cells                                                           |
+| `debug_memory['read_weights']`    | layer \* time       | read_heads \* nr_cells                                             |
+| `debug_memory['write_weights']`   | layer \* time       | nr_cells                                                           |
+| `debug_memory['usage']`           | layer \* time       | nr_cells                                                           |
 
 ### SAM
 
@@ -276,35 +277,34 @@ Memory vectors returned by forward pass (`np.ndarray`):
 
 Following are the constructor parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input_size | `None` | Size of the input vectors |
-| hidden_size | `None` | Size of hidden units |
-| rnn_type | `'lstm'` | Type of recurrent cells used in the controller |
-| num_layers | `1` | Number of layers of recurrent units in the controller |
-| num_hidden_layers | `2` | Number of hidden layers per layer of the controller |
-| bias | `True` | Bias |
-| batch_first | `True` | Whether data is fed batch first |
-| dropout | `0` | Dropout between layers in the controller |
-| bidirectional | `False` | If the controller is bidirectional (Not yet implemented |
-| nr_cells | `5000` | Number of memory cells |
-| read_heads | `4` | Number of read heads |
-| sparse_reads | `4` | Number of sparse memory reads per read head |
-| cell_size | `10` | Size of each memory cell |
-| nonlinearity | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs |
-| gpu_id | `-1` | ID of the GPU, -1 for CPU |
-| independent_linears | `False` | Whether to use independent linear units to derive interface vector |
-| share_memory | `True` | Whether to share memory between controller layers |
+| Argument            | Default  | Description                                                                     |
+|---------------------|----------|---------------------------------------------------------------------------------|
+| input_size          | `None`   | Size of the input vectors                                                       |
+| hidden_size         | `None`   | Size of hidden units                                                            |
+| rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                                  |
+| num_layers          | `1`      | Number of layers of recurrent units in the controller                           |
+| num_hidden_layers   | `2`      | Number of hidden layers per layer of the controller                             |
+| bias                | `True`   | Bias                                                                            |
+| batch_first         | `True`   | Whether data is fed batch first                                                 |
+| dropout             | `0`      | Dropout between layers in the controller                                        |
+| bidirectional       | `False`  | If the controller is bidirectional (Not yet implemented                         |
+| nr_cells            | `5000`   | Number of memory cells                                                          |
+| read_heads          | `4`      | Number of read heads                                                            |
+| sparse_reads        | `4`      | Number of sparse memory reads per read head                                     |
+| cell_size           | `10`     | Size of each memory cell                                                        |
+| nonlinearity        | `'tanh'` | If using 'rnn' as `rnn_type`, non-linearity of the RNNs                         |
+| device              | `None`   | PyTorch device object (e.g., `torch.device('cuda:0')` or `torch.device('cpu')`) |
+| independent_linears | `False`  | Whether to use independent linear units to derive interface vector              |
+| share_memory        | `True`   | Whether to share memory between controller layers                               |
 
 Following are the forward pass parameters:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| input | - | The input vector `(B*T*X)` or `(T*B*X)` |
-| hidden | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
-| reset_experience | `False` | Whether to reset memory |
-| pass_through_memory | `True` | Whether to pass through memory |
-
+| Argument            | Default            | Description                                                      |
+|---------------------|--------------------|------------------------------------------------------------------|
+| input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
+| hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
+| reset_experience    | `False`            | Whether to reset memory                                          |
+| pass_through_memory | `True`             | Whether to pass through memory                                   |
 
 #### Example usage
 
@@ -321,7 +321,7 @@ rnn = SAM(
   read_heads=4,
   sparse_reads=4,
   batch_first=True,
-  gpu_id=0
+  device=torch.device('cuda:0')
 )
 
 (controller_hidden, memory, read_vectors) = (None, None, None)
@@ -329,7 +329,6 @@ rnn = SAM(
 output, (controller_hidden, memory, read_vectors) = \
   rnn(torch.randn(10, 4, 64), (controller_hidden, memory, read_vectors), reset_experience=True)
 ```
-
 
 #### Debugging
 
@@ -349,7 +348,7 @@ rnn = SAM(
   read_heads=4,
   batch_first=True,
   sparse_reads=4,
-  gpu_id=0,
+  device=torch.device('cuda:0'),
   debug=True
 )
 
@@ -361,15 +360,14 @@ output, (controller_hidden, memory, read_vectors), debug_memory = \
 
 Memory vectors returned by forward pass (`np.ndarray`):
 
-| Key | Y axis (dimensions) | X axis (dimensions) |
-| --- | --- | --- |
-| `debug_memory['memory']` | layer * time | nr_cells * cell_size
-| `debug_memory['visible_memory']` | layer * time | sparse_reads+2*temporal_reads+1 * nr_cells
-| `debug_memory['read_positions']` | layer * time | sparse_reads+2*temporal_reads+1
-| `debug_memory['read_weights']` | layer * time | read_heads * nr_cells
-| `debug_memory['write_weights']` | layer * time | nr_cells
-| `debug_memory['usage']` | layer * time | nr_cells
-
+| Key                              | Y axis (dimensions) | X axis (dimensions)                        |
+|----------------------------------|---------------------|--------------------------------------------|
+| `debug_memory['memory']`         | layer \* time       | nr_cells \* cell_size                      |
+| `debug_memory['visible_memory']` | layer \* time       | sparse_reads+2*temporal_reads+1 * nr_cells |
+| `debug_memory['read_positions']` | layer \* time       | sparse_reads+2\*temporal_reads+1           |
+| `debug_memory['read_weights']`   | layer \* time       | read_heads \* nr_cells                     |
+| `debug_memory['write_weights']`  | layer \* time       | nr_cells                                   |
+| `debug_memory['usage']`          | layer \* time       | nr_cells                                   |
 
 ## Tasks
 
@@ -378,6 +376,7 @@ Memory vectors returned by forward pass (`np.ndarray`):
 The copy task, as descibed in the original paper, is included in the repo.
 
 From the project root:
+
 ```bash
 python ./tasks/copy_task.py -cuda 0 -optim rmsprop -batch_size 32 -mem_slot 64 # (like original implementation)
 
@@ -391,6 +390,7 @@ python ./tasks/copy_task.py -cuda 0 -lr 0.001 -rnn_type lstm -memory_type sdnc -
 ```
 
 For the full set of options, see:
+
 ```
 python ./tasks/copy_task.py --help
 ```
@@ -418,6 +418,7 @@ The visdom dashboard shows memory as a heatmap for batch 0 every `-summarize_fre
 
 The adding task is as described in [this github pull request](https://github.com/Mostafa-Samir/DNC-tensorflow/pull/4#issue-199369192).
 This task
+
 - creates one-hot vectors of size `input_size`, each representing a number
 - feeds a sentence of them to a network
 - the output of which is added to get the sum of the decoded outputs
@@ -436,55 +437,60 @@ The second adding task is similar to the first one, except that the network's ou
 python ./tasks/argmax_task.py -cuda 0 -lr 0.0001 -rnn_type lstm -memory_type dnc -nlayer 1 -nhlayer 1 -nhid 100 -dropout 0 -mem_slot 100 -mem_size 10 -read_heads 2 -batch_size 1 -optim rmsprop -sequence_max_length 15 -input_size 10 -iterations 10000
 ```
 
-
-
 ## Code Structure
 
 1. DNCs:
-  - [dnc/dnc.py](dnc/dnc.py) - Controller code.
-  - [dnc/memory.py](dnc/memory.py) - Memory module.
+
+- [dnc/dnc.py](dnc/dnc.py) - Controller code.
+- [dnc/memory.py](dnc/memory.py) - Memory module.
+
 2. SDNCs:
-  - [dnc/sdnc.py](dnc/sdnc.py) - Controller code, inherits [dnc.py](dnc/dnc.py).
-  - [dnc/sparse_temporal_memory.py](dnc/sparse_temporal_memory.py) - Memory module.
-  - [dnc/flann_index.py](dnc/flann_index.py) - Memory index using kNN.
+
+- [dnc/sdnc.py](dnc/sdnc.py) - Controller code, inherits [dnc.py](dnc/dnc.py).
+- [dnc/sparse_temporal_memory.py](dnc/sparse_temporal_memory.py) - Memory module.
+
 3. SAMs:
-  - [dnc/sam.py](dnc/sam.py) - Controller code, inherits [dnc.py](dnc/dnc.py).
-  - [dnc/sparse_memory.py](dnc/sparse_memory.py) - Memory module.
-  - [dnc/flann_index.py](dnc/flann_index.py) - Memory index using kNN.
+
+- [dnc/sam.py](dnc/sam.py) - Controller code, inherits [dnc.py](dnc/dnc.py).
+- [dnc/sparse_memory.py](dnc/sparse_memory.py) - Memory module.
+
 4. Tests:
-  - All tests are in [./tests](./tests) folder.
+
+- All tests are in [./tests](./tests) folder.
 
 ## General noteworthy stuff
 
-1. SDNCs use the [FLANN approximate nearest neigbhour library](https://github.com/mariusmuja/flann), with its python binding [pyflann3](https://github.com/primetang/pyflann) and [FAISS](https://github.com/facebookresearch/faiss).
+### FAISS Installation Options
 
-FLANN can be installed either from pip (automatically as a dependency), or from source (e.g. for multithreading via OpenMP):
+FAISS can be installed in two ways:
 
-```bash
-# install openmp first: e.g. `sudo pacman -S openmp` for Arch.
-git clone git://github.com/mariusmuja/flann.git
-cd flann
-mkdir build
-cd build
-cmake ..
-make -j 4
-sudo make install
-```
-
-FAISS can be installed using:
+1. Using conda (quickest for most users):
 
 ```bash
 conda install faiss-gpu -c pytorch
 ```
 
-FAISS is much faster, has a GPU implementation and is interoperable with pytorch tensors.
-We try to use FAISS by default, in absence of which we fall back to FLANN.
+2. Using the custom build script (for better CUDA integration):
 
-2. `nan`s in the gradients are common, try with different batch sizes
+```bash
+# Navigate to the scripts/faiss_build directory
+cd scripts/faiss_build
+# Run the build script (builds FAISS with CUDA and cuBLAS support)
+./build_faiss.sh
+```
+
+The custom build script will compile FAISS with CUDA and cuBLAS support directly into your virtual environment, providing better performance for GPU-accelerated sparse memory operations.
+
+FAISS is much faster, has a GPU implementation, and is interoperable with PyTorch tensors. Recent updates have improved CUDA support for better performance on GPU hardware.
+
+### Troubleshooting
+
+1. `nan`s in the gradients are common, try with different batch sizes
+2. If you encounter CUDA-related issues with FAISS, try using the custom build script mentioned above
+3. Recent bug fixes have addressed several stability issues
 
 Repos referred to for creation of this repo:
 
 - [deepmind/dnc](https://github.com/deepmind/dnc)
 - [ypxie/pytorch-NeuCom](https://github.com/ypxie/pytorch-NeuCom)
 - [jingweiz/pytorch-dnc](https://github.com/jingweiz/pytorch-dnc)
-

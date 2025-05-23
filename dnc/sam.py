@@ -1,125 +1,143 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-import torch.nn as nn
-import torch as T
-from torch.autograd import Variable as var
-import numpy as np
-
-from torch.nn.utils.rnn import pad_packed_sequence as pad
-from torch.nn.utils.rnn import pack_padded_sequence as pack
-from torch.nn.utils.rnn import PackedSequence
-from torch.nn.init import orthogonal_, xavier_uniform_
-
-from .util import *
-from .sparse_memory import SparseMemory
+import torch
 
 from .dnc import DNC
+from .sparse_memory import SparseMemory
 
 
 class SAM(DNC):
+    """Sparse Access Memory (SAM) module."""
 
-  def __init__(
-      self,
-      input_size,
-      hidden_size,
-      rnn_type='lstm',
-      num_layers=1,
-      num_hidden_layers=2,
-      bias=True,
-      batch_first=True,
-      dropout=0,
-      bidirectional=False,
-      nr_cells=5000,
-      sparse_reads=4,
-      read_heads=4,
-      cell_size=10,
-      nonlinearity='tanh',
-      gpu_id=-1,
-      independent_linears=False,
-      share_memory=True,
-      debug=False,
-      clip=20
-  ):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        rnn_type: str = "lstm",
+        num_layers: int = 1,
+        num_hidden_layers: int = 2,
+        bias: bool = True,
+        batch_first: bool = True,
+        dropout: float = 0.0,
+        bidirectional: bool = False,
+        nr_cells: int = 5000,
+        sparse_reads: int = 4,
+        read_heads: int = 4,
+        cell_size: int = 10,
+        nonlinearity: str = "tanh",
+        independent_linears: bool = False,
+        share_memory: bool = True,
+        debug: bool = False,
+        clip: float = 20,
+        device: torch.device | None = None,
+    ):
+        """Initialize SAM.
 
-    super(SAM, self).__init__(
-        input_size=input_size,
-        hidden_size=hidden_size,
-        rnn_type=rnn_type,
-        num_layers=num_layers,
-        num_hidden_layers=num_hidden_layers,
-        bias=bias,
-        batch_first=batch_first,
-        dropout=dropout,
-        bidirectional=bidirectional,
-        nr_cells=nr_cells,
-        read_heads=read_heads,
-        cell_size=cell_size,
-        nonlinearity=nonlinearity,
-        gpu_id=gpu_id,
-        independent_linears=independent_linears,
-        share_memory=share_memory,
-        debug=debug,
-        clip=clip
-    )
-    self.sparse_reads = sparse_reads
-
-    # override SDNC memories with SAM
-    self.memories = []
-
-    for layer in range(self.num_layers):
-      # memories for each layer
-      if not self.share_memory:
-        self.memories.append(
-            SparseMemory(
-                input_size=self.output_size,
-                mem_size=self.nr_cells,
-                cell_size=self.w,
-                sparse_reads=self.sparse_reads,
-                read_heads=self.read_heads,
-                gpu_id=self.gpu_id,
-                mem_gpu_id=self.gpu_id,
-                independent_linears=self.independent_linears
-            )
+        Args:
+            input_size: Input size.
+            hidden_size: Hidden size.
+            rnn_type: Type of RNN cell (lstm, gru, rnn).
+            num_layers: Number of RNN layers.
+            num_hidden_layers: Number of hidden layers in each RNN.
+            bias: Whether to use bias in the RNN.
+            batch_first: Whether the input is batch-first.
+            dropout: Dropout rate.
+            bidirectional: Whether the RNN is bidirectional.
+            nr_cells: Number of memory cells.
+            sparse_reads: Number of sparse reads.
+                 read_heads: Number of read heads.
+                 cell_size: Size of each memory cell.
+                 nonlinearity: Nonlinearity for RNN ('tanh' or 'relu').
+                 device: GPU ID (deprecated, use device).
+                 independent_linears: Whether to use independent linear layers in memory.
+                 share_memory: Whether to share memory across layers.
+                 debug: Whether to enable debug mode.
+                 clip: Value to clip controller output.
+                 device: PyTorch device.
+        """
+        super(SAM, self).__init__(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            rnn_type=rnn_type,
+            num_layers=num_layers,
+            num_hidden_layers=num_hidden_layers,
+            bias=bias,
+            batch_first=batch_first,
+            dropout=dropout,
+            nr_cells=nr_cells,
+            read_heads=read_heads,
+            cell_size=cell_size,
+            nonlinearity=nonlinearity,
+            independent_linears=independent_linears,
+            share_memory_between_layers=share_memory,
+            debug=debug,
+            clip=clip,
+            device=device,
         )
-        setattr(self, 'rnn_layer_memory_' + str(layer), self.memories[layer])
+        self.sparse_reads = sparse_reads
+        self.device = device
+        # override SDNC memories with SAM
+        self.memories = []
 
-    # only one memory shared by all layers
-    if self.share_memory:
-      self.memories.append(
-          SparseMemory(
-              input_size=self.output_size,
-              mem_size=self.nr_cells,
-              cell_size=self.w,
-              sparse_reads=self.sparse_reads,
-              read_heads=self.read_heads,
-              gpu_id=self.gpu_id,
-              mem_gpu_id=self.gpu_id,
-              independent_linears=self.independent_linears
-          )
-      )
-      setattr(self, 'rnn_layer_memory_shared', self.memories[0])
+        for layer in range(self.num_layers):
+            # memories for each layer
+            if not self.share_memory_between_layers:
+                self.memories.append(
+                    SparseMemory(
+                        input_size=self.output_size,
+                        mem_size=self.nr_cells,
+                        cell_size=self.w,
+                        sparse_reads=self.sparse_reads,
+                        read_heads=self.read_heads,
+                        device=self.device,
+                        independent_linears=self.independent_linears,
+                    )
+                )
+                setattr(self, "rnn_layer_memory_" + str(layer), self.memories[layer])
 
-  def _debug(self, mhx, debug_obj):
-    if not debug_obj:
-      debug_obj = {
-          'memory': [],
-          'visible_memory': [],
-          'read_weights': [],
-          'write_weights': [],
-          'read_vectors': [],
-          'least_used_mem': [],
-          'usage': [],
-          'read_positions': []
-      }
+        # only one memory shared by all layers
+        if self.share_memory_between_layers:
+            self.memories.append(
+                SparseMemory(
+                    input_size=self.output_size,
+                    mem_size=self.nr_cells,
+                    cell_size=self.w,
+                    sparse_reads=self.sparse_reads,
+                    read_heads=self.read_heads,
+                    device=self.device,
+                    independent_linears=self.independent_linears,
+                )
+            )
+            setattr(self, "rnn_layer_memory_shared", self.memories[0])
 
-    debug_obj['memory'].append(mhx['memory'][0].data.cpu().numpy())
-    debug_obj['visible_memory'].append(mhx['visible_memory'][0].data.cpu().numpy())
-    debug_obj['read_weights'].append(mhx['read_weights'][0].unsqueeze(0).data.cpu().numpy())
-    debug_obj['write_weights'].append(mhx['write_weights'][0].unsqueeze(0).data.cpu().numpy())
-    debug_obj['read_vectors'].append(mhx['read_vectors'][0].data.cpu().numpy())
-    debug_obj['least_used_mem'].append(mhx['least_used_mem'][0].unsqueeze(0).data.cpu().numpy())
-    debug_obj['usage'].append(mhx['usage'][0].unsqueeze(0).data.cpu().numpy())
-    debug_obj['read_positions'].append(mhx['read_positions'][0].unsqueeze(0).data.cpu().numpy())
+    def _debug(self, mhx: dict, debug_obj: dict | None) -> dict | None:
+        """Debug function to collect memory information.
+        Args:
+            mhx: Memory hidden state.
+            debug_obj: Debug object to store information.
 
-    return debug_obj
+        Returns:
+            Updated debug object or None.
+        """
+        if not debug_obj:
+            debug_obj = {
+                "memory": [],
+                "visible_memory": [],
+                "read_weights": [],
+                "write_weights": [],
+                "read_vectors": [],
+                "least_used_mem": [],
+                "usage": [],
+                "read_positions": [],
+            }
+
+        debug_obj["memory"].append(mhx["memory"][0].detach().cpu().numpy())
+        debug_obj["visible_memory"].append(mhx["visible_memory"][0].detach().cpu().numpy())
+        debug_obj["read_weights"].append(mhx["read_weights"][0].unsqueeze(0).detach().cpu().numpy())
+        debug_obj["write_weights"].append(mhx["write_weights"][0].unsqueeze(0).detach().cpu().numpy())
+        debug_obj["read_vectors"].append(mhx["read_vectors"][0].detach().cpu().numpy())
+        debug_obj["least_used_mem"].append(mhx["least_used_mem"][0].unsqueeze(0).detach().cpu().numpy())
+        debug_obj["usage"].append(mhx["usage"][0].unsqueeze(0).detach().cpu().numpy())
+        debug_obj["read_positions"].append(mhx["read_positions"][0].unsqueeze(0).detach().cpu().numpy())
+
+        return debug_obj
