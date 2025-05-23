@@ -22,7 +22,7 @@ with open(path.join(here, "README.rst"), encoding="utf-8") as f:
 
 setup(
     name="dnc",
-    version="2.0.0",
+    version="2.0.0b1",
     description="Differentiable Neural Computer, for Pytorch",
     long_description=long_description,
     # The project's main homepage.

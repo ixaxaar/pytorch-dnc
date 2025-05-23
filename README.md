@@ -80,7 +80,7 @@ Following are the constructor parameters:
 Following are the constructor parameters:
 
 | Argument            | Default  | Description                                                                     |
-|---------------------|----------|---------------------------------------------------------------------------------|
+| ------------------- | -------- | ------------------------------------------------------------------------------- |
 | input_size          | `None`   | Size of the input vectors                                                       |
 | hidden_size         | `None`   | Size of hidden units                                                            |
 | rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                                  |
@@ -101,7 +101,7 @@ Following are the constructor parameters:
 Following are the forward pass parameters:
 
 | Argument            | Default            | Description                                                      |
-|---------------------|--------------------|------------------------------------------------------------------|
+| ------------------- | ------------------ | ---------------------------------------------------------------- |
 | input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
 | hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
 | reset_experience    | `False`            | Whether to reset memory                                          |
@@ -160,7 +160,7 @@ output, (controller_hidden, memory, read_vectors), debug_memory = \
 Memory vectors returned by forward pass (`np.ndarray`):
 
 | Key                             | Y axis (dimensions) | X axis (dimensions)    |
-|---------------------------------|---------------------|------------------------|
+| ------------------------------- | ------------------- | ---------------------- |
 | `debug_memory['memory']`        | layer \* time       | nr_cells \* cell_size  |
 | `debug_memory['link_matrix']`   | layer \* time       | nr_cells \* nr_cells   |
 | `debug_memory['precedence']`    | layer \* time       | nr_cells               |
@@ -175,7 +175,7 @@ Memory vectors returned by forward pass (`np.ndarray`):
 Following are the constructor parameters:
 
 | Argument            | Default  | Description                                                                     |
-|---------------------|----------|---------------------------------------------------------------------------------|
+| ------------------- | -------- | ------------------------------------------------------------------------------- |
 | input_size          | `None`   | Size of the input vectors                                                       |
 | hidden_size         | `None`   | Size of hidden units                                                            |
 | rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                                  |
@@ -198,7 +198,7 @@ Following are the constructor parameters:
 Following are the forward pass parameters:
 
 | Argument            | Default            | Description                                                      |
-|---------------------|--------------------|------------------------------------------------------------------|
+| ------------------- | ------------------ | ---------------------------------------------------------------- |
 | input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
 | hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
 | reset_experience    | `False`            | Whether to reset memory                                          |
@@ -260,7 +260,7 @@ output, (controller_hidden, memory, read_vectors), debug_memory = \
 Memory vectors returned by forward pass (`np.ndarray`):
 
 | Key                               | Y axis (dimensions) | X axis (dimensions)                                                |
-|-----------------------------------|---------------------|--------------------------------------------------------------------|
+| --------------------------------- | ------------------- | ------------------------------------------------------------------ |
 | `debug_memory['memory']`          | layer \* time       | nr_cells \* cell_size                                              |
 | `debug_memory['visible_memory']`  | layer \* time       | sparse_reads+2*temporal_reads+1 * nr_cells                         |
 | `debug_memory['read_positions']`  | layer \* time       | sparse_reads+2\*temporal_reads+1                                   |
@@ -278,7 +278,7 @@ Memory vectors returned by forward pass (`np.ndarray`):
 Following are the constructor parameters:
 
 | Argument            | Default  | Description                                                                     |
-|---------------------|----------|---------------------------------------------------------------------------------|
+| ------------------- | -------- | ------------------------------------------------------------------------------- |
 | input_size          | `None`   | Size of the input vectors                                                       |
 | hidden_size         | `None`   | Size of hidden units                                                            |
 | rnn_type            | `'lstm'` | Type of recurrent cells used in the controller                                  |
@@ -300,7 +300,7 @@ Following are the constructor parameters:
 Following are the forward pass parameters:
 
 | Argument            | Default            | Description                                                      |
-|---------------------|--------------------|------------------------------------------------------------------|
+| ------------------- | ------------------ | ---------------------------------------------------------------- |
 | input               | -                  | The input vector `(B*T*X)` or `(T*B*X)`                          |
 | hidden              | `(None,None,None)` | Hidden states `(controller hidden, memory hidden, read vectors)` |
 | reset_experience    | `False`            | Whether to reset memory                                          |
@@ -361,7 +361,7 @@ output, (controller_hidden, memory, read_vectors), debug_memory = \
 Memory vectors returned by forward pass (`np.ndarray`):
 
 | Key                              | Y axis (dimensions) | X axis (dimensions)                        |
-|----------------------------------|---------------------|--------------------------------------------|
+| -------------------------------- | ------------------- | ------------------------------------------ |
 | `debug_memory['memory']`         | layer \* time       | nr_cells \* cell_size                      |
 | `debug_memory['visible_memory']` | layer \* time       | sparse_reads+2*temporal_reads+1 * nr_cells |
 | `debug_memory['read_positions']` | layer \* time       | sparse_reads+2\*temporal_reads+1           |
