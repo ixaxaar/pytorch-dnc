@@ -4,7 +4,7 @@ charset-normalizer==3.4.1
 exceptiongroup==1.2.2
 filelock==3.17.0
 fsspec==2025.2.0
-idna==3.10
+idna==3.15
 iniconfig==2.0.0
 Jinja2==3.1.6
 jsonpatch==1.33
