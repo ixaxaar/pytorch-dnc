@@ -39,7 +39,7 @@ tomli==2.2.1
 torch==2.7.1
 torchaudio==2.6.0
 torchvision==0.21.0
-tornado==6.5.5
+tornado==6.5.7
 triton==3.2.0
 typing_extensions==4.12.2
 urllib3==2.6.3
