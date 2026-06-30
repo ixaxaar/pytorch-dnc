@@ -27,7 +27,7 @@ nvidia-nccl-cu12==2.21.5
 nvidia-nvjitlink-cu12==12.4.127
 nvidia-nvtx-cu12==12.4.127
 packaging==24.2
-pillow==11.1.0
+pillow==12.2.0
 pluggy==1.5.0
 pyflakes==3.2.0
 pytest==8.3.4
